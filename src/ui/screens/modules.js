@@ -98,6 +98,9 @@ export function renderModules(root, state, { onNavigate }) {
     setState({ viewerActive: true });
     viewer?.dispose();
     viewer = new ViewerSession(mount, { calibration: cal, viewMode, mode });
+    if (typeof window !== 'undefined' && window.__OJO_A_OJO__) {
+      window.__OJO_A_OJO__.viewerSession = viewer;
+    }
     viewer.stereo.setViewMode(viewMode);
     viewer.startModule(moduleId, () => {
       if (sequenceIndex !== null) {

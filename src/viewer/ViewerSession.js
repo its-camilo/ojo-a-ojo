@@ -91,6 +91,11 @@ export class ViewerSession {
     this._raf = requestAnimationFrame(() => this._loop());
   }
 
+  /** Cierra el módulo activo con respuestas de ensayo (E2E / verificación). */
+  completeForE2e() {
+    this.activeModule?.completeForE2e?.();
+  }
+
   dispose() {
     this.stopModule();
     this.gaze.dispose();

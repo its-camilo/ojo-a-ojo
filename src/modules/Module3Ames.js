@@ -131,4 +131,9 @@ export class Module3Ames {
   onGazeSelect(mesh) {
     mesh.userData.onSelect?.();
   }
+
+  completeForE2e() {
+    this._answer('right');
+    this._finish('equal');
+  }
 }

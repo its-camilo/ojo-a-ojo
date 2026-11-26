@@ -120,4 +120,12 @@ export class Module1Balance {
   onGazeSelect(mesh) {
     mesh.userData.onSelect?.();
   }
+
+  /** Completa ensayos mínimos (Playwright / verificación automatizada). */
+  completeForE2e() {
+    this._trial(false);
+    this._trial(true);
+    this._trial(false);
+    this._finish();
+  }
 }

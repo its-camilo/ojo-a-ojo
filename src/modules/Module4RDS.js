@@ -121,4 +121,9 @@ export class Module4RDS {
   onGazeSelect(mesh) {
     mesh.userData.onSelect?.();
   }
+
+  completeForE2e() {
+    this._answer('near');
+    this._answer('near');
+  }
 }

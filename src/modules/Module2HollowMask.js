@@ -117,4 +117,9 @@ export class Module2HollowMask {
   onGazeSelect(mesh) {
     mesh.userData.onSelect?.();
   }
+
+  completeForE2e() {
+    this._answer('convex');
+    this._answer('concave');
+  }
 }

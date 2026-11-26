@@ -1,22 +1,39 @@
 import { appState, finishSession } from '../../app/state.js';
-import { clearSessionResults } from '../../utils/storage.js';
+import { clearSessionResults, loadSessionResults } from '../../utils/storage.js';
+
+export const MODULE_LABELS = {
+  balance: 'Balance dicóptico 3D',
+  'hollow-mask': 'Máscara hueca 3D',
+  ames: 'Cuarto de Ames 3D',
+  rds: 'RDS 3D grueso (Julesz)',
+};
+
+const MODULE_ORDER = ['balance', 'hollow-mask', 'ames', 'rds'];
 
 export function renderSummary(root, { onNavigate }) {
+  const stored = loadSessionResults();
+  if (stored?.modules) {
+    appState.session = {
+      ...appState.session,
+      ...stored,
+      modules: { ...appState.session.modules, ...stored.modules },
+    };
+  }
   finishSession();
   const mods = appState.session.modules || {};
-  const keys = ['balance', 'hollow-mask', 'ames', 'rds'];
 
-  const rows = keys
-    .map((id) => {
-      const m = mods[id];
-      if (!m) return `<tr><td>${id}</td><td colspan="2"><em>No realizado</em></td></tr>`;
-      return `<tr>
-        <td>${m.title || id}</td>
-        <td><pre class="metrics-json">${escapeHtml(JSON.stringify(m, null, 0))}</pre></td>
-        <td>${escapeHtml(m.interpretation || '—')}</td>
-      </tr>`;
-    })
-    .join('');
+  const rows = MODULE_ORDER.map((id) => {
+    const m = mods[id];
+    const title = MODULE_LABELS[id];
+    if (!m) {
+      return `<tr><td>${title}</td><td colspan="2"><em>No realizado</em></td></tr>`;
+    }
+    return `<tr>
+      <td>${title}</td>
+      <td><pre class="metrics-json">${escapeHtml(formatMetrics(m))}</pre></td>
+      <td>${escapeHtml(m.interpretation || '—')}</td>
+    </tr>`;
+  }).join('');
 
   root.innerHTML = `
     <main class="screen screen--summary">
@@ -29,7 +46,7 @@ export function renderSummary(root, { onNavigate }) {
       </header>
       <section class="card">
         <h2>Patrón de los 4 módulos</h2>
-        <table class="summary-table">
+        <table class="summary-table" data-testid="summary-table">
           <thead><tr><th>Módulo</th><th>Métricas</th><th>Interpretación prudente</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -60,6 +77,15 @@ export function renderSummary(root, { onNavigate }) {
   root.querySelector('#btn-home').onclick = () => onNavigate('home');
 }
 
+function formatMetrics(m) {
+  const copy = { ...m };
+  delete copy.interpretation;
+  delete copy.recordedAt;
+  if (copy.moduleId) delete copy.moduleId;
+  if (copy.title) delete copy.title;
+  return JSON.stringify(copy, null, 2);
+}
+
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -69,10 +95,26 @@ function escapeHtml(s) {
 
 function drawCrossPattern(el, mods) {
   const items = [
-    { id: 'balance', label: 'Balance', ok: mods.balance?.valid || mods.balance?.imbalanceRatio },
-    { id: 'hollow-mask', label: 'Hollow', ok: mods['hollow-mask']?.stereoPercept },
-    { id: 'ames', label: 'Ames', ok: mods.ames?.stereoJudgment },
-    { id: 'rds', label: 'RDS', ok: mods.rds?.stereoDepth && mods.rds.stereoDepth !== 'none' },
+    {
+      id: 'balance',
+      label: MODULE_LABELS.balance,
+      ok: mods.balance && (mods.balance.imbalanceRatio != null || mods.balance.valid != null),
+    },
+    {
+      id: 'hollow-mask',
+      label: MODULE_LABELS['hollow-mask'],
+      ok: Boolean(mods['hollow-mask']?.stereoPercept || mods['hollow-mask']?.monoPercept),
+    },
+    {
+      id: 'ames',
+      label: MODULE_LABELS.ames,
+      ok: Boolean(mods.ames?.stereoJudgment),
+    },
+    {
+      id: 'rds',
+      label: MODULE_LABELS.rds,
+      ok: Boolean(mods.rds?.stereoDepth),
+    },
   ];
   el.innerHTML = `
     <div class="cross-grid">
@@ -85,6 +127,6 @@ function drawCrossPattern(el, mods) {
         )
         .join('')}
     </div>
-    <p class="hint">Valore conjuntamente: p. ej. RDS ausente + balance muy desviado → indício de consulta; no una sola métrica aislada (Webber et al., 2020; dossier §6).</p>
+    <p class="hint">Valore el patrón entre módulos en conjunto (por ejemplo, dificultad en RDS y desequilibrio marcado en balance), no una sola prueba aislada. Véase Webber et al. (2020) sobre supresión y estereopsis.</p>
   `;
 }
