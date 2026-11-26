@@ -4,12 +4,16 @@ import { clearGroup } from './clearGroup.js';
 import { makeCheckerTexture, makeWallTexture, makeMarbleTexture, makeWoodTexture } from './amesTextures.js';
 import { enableSharedStereoLayers } from '../utils/stereoLayers.js';
 
-function interiorMat(color, map = null) {
-  return new THREE.MeshLambertMaterial({
+function wallMat(color, map = null) {
+  return new THREE.MeshBasicMaterial({
     color,
     map,
     side: THREE.DoubleSide,
   });
+}
+
+function interiorMat(color, map = null) {
+  return new THREE.MeshLambertMaterial({ color, map, side: THREE.DoubleSide });
 }
 
 function buildStylizedFigure(colors) {
@@ -89,40 +93,40 @@ export class Module3Ames {
 
     const floor = new THREE.Mesh(
       this._trapezoidSlabGeometry(nearW, farW, depth, -0.62),
-      interiorMat(0xd8cbb8, checker)
+      wallMat(0xd8cbb8, checker)
     );
     floor.position.z = -0.32;
     room.add(floor);
 
     const ceiling = new THREE.Mesh(
       this._trapezoidSlabGeometry(nearW, farW, depth, 0),
-      interiorMat(0xd4c4b0, woodTex)
+      wallMat(0xd4c4b0, woodTex)
     );
     ceiling.rotation.x = Math.PI;
     ceiling.position.set(0, ceilingY, -0.32);
     room.add(ceiling);
 
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(farW, ceilingY - 0.2), interiorMat(0xdfd2c2, wallTex));
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(farW, ceilingY - 0.2), wallMat(0xdfd2c2, wallTex));
     back.position.set(0, ceilingY / 2 - 0.08, -depth - 0.4);
     room.add(back);
 
     const wainscotH = 1.0;
-    const leftLo = new THREE.Mesh(new THREE.PlaneGeometry(depth + 0.4, wainscotH), interiorMat(0xc8beb0, marbleTex));
+    const leftLo = new THREE.Mesh(new THREE.PlaneGeometry(depth + 0.4, wainscotH), wallMat(0xc8beb0, marbleTex));
     leftLo.rotation.y = -Math.PI / 2;
     leftLo.position.set(-nearW / 2 + 0.01, wainscotH / 2 - 0.12, -depth / 2 + 0.15);
     const leftHi = new THREE.Mesh(
       new THREE.PlaneGeometry(depth + 0.4, ceilingY - wainscotH - 0.15),
-      interiorMat(0xe5dcd0)
+      wallMat(0xe5dcd0)
     );
     leftHi.rotation.y = -Math.PI / 2;
     leftHi.position.set(-nearW / 2 + 0.01, wainscotH + (ceilingY - wainscotH) / 2 - 0.28, -depth / 2 + 0.15);
 
-    const rightLo = new THREE.Mesh(new THREE.PlaneGeometry(depth + 0.4, wainscotH), interiorMat(0xc8beb0, marbleTex));
+    const rightLo = new THREE.Mesh(new THREE.PlaneGeometry(depth + 0.4, wainscotH), wallMat(0xc8beb0, marbleTex));
     rightLo.rotation.y = Math.PI / 2;
     rightLo.position.set(nearW / 2 - 0.01, wainscotH / 2 - 0.12, -depth / 2 + 0.15);
     const rightHi = new THREE.Mesh(
       new THREE.PlaneGeometry(depth + 0.4, ceilingY - wainscotH - 0.15),
-      interiorMat(0xe5dcd0)
+      wallMat(0xe5dcd0)
     );
     rightHi.rotation.y = Math.PI / 2;
     rightHi.position.set(nearW / 2 - 0.01, wainscotH + (ceilingY - wainscotH) / 2 - 0.28, -depth / 2 + 0.15);
@@ -163,7 +167,7 @@ export class Module3Ames {
     );
 
     const figNear = buildStylizedFigure({ skin: 0xe8b898, cloth: 0xd45d48, pants: 0x2c3e50 });
-    figNear.position.set(-0.92, -0.58, -1.25);
+    figNear.position.set(-0.72, -0.58, -1.2);
     figNear.rotation.y = 0.45;
 
     const figFar = buildStylizedFigure({ skin: 0xd4a888, cloth: 0x3b6ea8, pants: 0x3d342a });

@@ -34,15 +34,22 @@ export class Module2HollowMask {
     wall.position.set(0, 0.15, -3.35);
     this.group.add(wall);
 
-    const key = new THREE.DirectionalLight(0xe0d4c8, 0.62);
-    key.position.set(0.5, 1.05, -0.15);
+    const key = new THREE.DirectionalLight(0xe8dcd0, 0.78);
+    key.position.set(0.35, 0.95, 0.15);
     const rim = new THREE.DirectionalLight(0xb8a898, 0.38);
     rim.position.set(1.5, 0.35, -1.05);
     const fill = new THREE.DirectionalLight(0x98a8c0, 0.3);
     fill.position.set(-1.3, 0.2, -0.35);
     const lowFill = new THREE.PointLight(0xc8b0a0, 0.38, 8);
     lowFill.position.set(0.12, -0.22, -1.55);
-    this.group.add(key, rim, fill, lowFill, new THREE.AmbientLight(0xa0a8b8, 0.55));
+    this.group.add(
+      key,
+      rim,
+      fill,
+      lowFill,
+      new THREE.AmbientLight(0xb0b8c8, 0.62),
+      new THREE.HemisphereLight(0xe8e0d4, 0x282c34, 0.48)
+    );
 
     const plasterMap = makePlasterTexture();
     plasterMap.repeat.set(2, 2);
