@@ -43,7 +43,7 @@ export class Module3Ames {
         label: `Mismo tamaño\n(${phase} · se ven iguales)`,
         onSelect: () => this._answer('equal'),
       },
-    ]).forEach((b) => this.ui.add(b));
+    ], { preset: 'ames' }).forEach((b) => this.ui.add(b));
   }
 
   _answer(choice) {

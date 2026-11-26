@@ -96,14 +96,7 @@ function buildOverallNarrative(mods) {
   const parts = [];
   const balance = mods.balance;
   if (balance?.imbalanceRatio != null) {
-    const ir = balance.imbalanceRatio;
-    if (ir >= 0.85 && ir <= 1.15) {
-      parts.push('El balance dicóptico se acercó a un equilibrio entre ojos.');
-    } else if (ir < 0.85) {
-      parts.push('El balance sugiere mayor influencia del ojo izquierdo en contraste percibido.');
-    } else {
-      parts.push('El balance sugiere mayor influencia del ojo derecho en contraste percibido.');
-    }
+    parts.push(balanceDominanceSentence(balance.imbalanceRatio));
   }
   const hm = mods['hollow-mask'];
   if (hm?.stereoPercept) {
@@ -132,18 +125,42 @@ function buildOverallNarrative(mods) {
   return `${parts.join(' ')} Revise cada tarjeta abajo para el detalle numérico.`;
 }
 
+/** IR ≈ contraste relativo del ojo izquierdo; <1 refuerza izquierdo → predominancia del derecho, >1 al revés. */
+function balanceDominanceEye(ir) {
+  if (typeof ir !== 'number' || !Number.isFinite(ir)) return null;
+  if (ir >= 0.85 && ir <= 1.15) return 'balanced';
+  if (ir < 0.85) return 'right';
+  return 'left';
+}
+
+function balanceDominanceSentence(ir) {
+  const eye = balanceDominanceEye(ir);
+  if (eye === null) return 'El balance dicóptico quedó registrado sin un índice numérico claro.';
+  if (eye === 'balanced') return 'El balance dicóptico se acercó a un equilibrio entre ojos.';
+  if (eye === 'right') {
+    return 'El balance sugiere posible predominancia del ojo derecho en contraste percibido (el ojo izquierdo necesitó más refuerzo para parecerte igual).';
+  }
+  return 'El balance sugiere posible predominancia del ojo izquierdo en contraste percibido (la razón medida quedó por encima de 1).';
+}
+
+function balanceCardInterpretation(ir) {
+  const eye = balanceDominanceEye(ir);
+  if (eye === null) return 'Sin dato numérico claro para interpretar el balance.';
+  if (eye === 'balanced') {
+    return 'Valores cercanos a 1 indican equilibrio relativo entre ojos en esta prueba exploratoria.';
+  }
+  if (eye === 'right') {
+    return 'Por debajo de 1, el ojo izquierdo necesitó más contraste para parecerte igual — posible predominancia del ojo derecho.';
+  }
+  return 'Por encima de 1 en la razón de balance — posible predominancia del ojo izquierdo en contraste percibido.';
+}
+
 function explainResultPlain(id, m) {
   switch (id) {
     case 'balance': {
       const ir = m.imbalanceRatio;
       if (typeof ir !== 'number' || !Number.isFinite(ir)) return m.interpretation || 'Sin dato numérico.';
-      if (ir >= 0.85 && ir <= 1.15) {
-        return 'Valores cercanos a 1 indican equilibrio relativo entre ojos en esta prueba exploratoria.';
-      }
-      if (ir < 0.85) {
-        return 'Por debajo de 1, el ojo izquierdo necesitó más contraste para parecerte igual — posible predominancia del derecho.';
-      }
-      return 'Por encima de 1, el ojo derecho domina en contraste percibido en esta tarea.';
+      return balanceCardInterpretation(ir);
     }
     case 'hollow-mask': {
       const mono = labelPercept(m.monoPercept);

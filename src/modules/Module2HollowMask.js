@@ -106,7 +106,7 @@ export class Module2HollowMask {
         label: `Cóncava\n(${phase} · hueca hacia adentro)`,
         onSelect: () => this._answer('concave'),
       },
-    ]).forEach((b) => this.ui.add(b));
+    ], { preset: 'hollow' }).forEach((b) => this.ui.add(b));
   }
 
   _answer(percept) {

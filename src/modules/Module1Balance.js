@@ -183,7 +183,7 @@ export class Module1Balance {
         label: 'Equilibrado\n(ambos ojos igual)',
         onSelect: () => this._trialBalanced(),
       },
-    ]).forEach((b) => this.ui.add(b));
+    ], { preset: 'balance' }).forEach((b) => this.ui.add(b));
     this.group.add(this.ui);
   }
 
