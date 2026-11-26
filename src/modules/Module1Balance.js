@@ -4,7 +4,7 @@ import balanceFrag from '../shaders/dichoptic-balance.frag.glsl?raw';
 import { injectColorOps, prepareGlslForThree } from '../utils/shaderBuild.js';
 import { Staircase1up1down } from '../utils/psychophysics.js';
 import { LAYER_LEFT, LAYER_RIGHT } from '../viewer/StereoRenderer.js';
-import { createGazeButton } from './createInteractable.js';
+import { createButtonRow } from './uiLayout.js';
 
 export class Module1Balance {
   constructor(stereo, onComplete) {
@@ -65,19 +65,11 @@ export class Module1Balance {
 
   _buildUI() {
     this.ui = new THREE.Group();
-    this.ui.add(
-      createGazeButton('Veo más el lado IZQUIERDO', new THREE.Vector3(-1.1, -0.85, -1.5), () =>
-        this._trial(false)
-      )
-    );
-    this.ui.add(
-      createGazeButton('Veo más el lado DERECHO', new THREE.Vector3(1.1, -0.85, -1.5), () =>
-        this._trial(true)
-      )
-    );
-    this.ui.add(
-      createGazeButton('Terminar módulo', new THREE.Vector3(0, -1.15, -1.5), () => this._finish())
-    );
+    createButtonRow([
+      { label: 'Izquierda', onSelect: () => this._trial(false) },
+      { label: 'Derecha', onSelect: () => this._trial(true) },
+      { label: 'Terminar', onSelect: () => this._finish() },
+    ]).forEach((b) => this.ui.add(b));
     this.group.add(this.ui);
   }
 

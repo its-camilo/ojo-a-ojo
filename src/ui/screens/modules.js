@@ -91,7 +91,6 @@ export function renderModules(root, state, { onNavigate }) {
           <p class="disclaimer-inline">Mirada central ~1,5 s · clic/toque/Enter alternativo</p>
           <button type="button" class="btn btn--ghost" id="exit-viewer">Salir del módulo</button>
         </div>
-        <div class="reticle-hud" aria-hidden="true"><div class="reticle-hud__ring"></div></div>
       </div>
     `;
     const mount = root.querySelector('#viewer-mount');

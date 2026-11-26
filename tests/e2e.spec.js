@@ -66,8 +66,8 @@ test('Ojo a Ojo v1 — flujo escritorio sin errores WebGL', async ({ page }) => 
   await expect(table.getByRole('cell', { name: 'Máscara hueca 3D', exact: true })).toBeVisible();
   await expect(table.getByRole('cell', { name: 'Cuarto de Ames 3D', exact: true })).toBeVisible();
   await expect(table.getByRole('cell', { name: 'RDS 3D grueso (Julesz)', exact: true })).toBeVisible();
-  await expect(table.locator('pre.metrics-json').first()).toContainText(/imbalanceRatio/);
-  await expect(table.locator('pre.metrics-json').nth(3)).toContainText(/disparityPx/);
+  await expect(table.locator('.metrics-cell').first()).toContainText(/Razón de balance/);
+  await expect(table.locator('.metrics-cell').nth(3)).toContainText(/Disparidad: 6 px/);
 
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '07-resumen.png'), fullPage: true });
 

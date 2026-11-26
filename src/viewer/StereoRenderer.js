@@ -86,15 +86,24 @@ export class StereoRenderer {
 
   _createReticle() {
     const group = new THREE.Group();
-    const ringGeo = new THREE.RingGeometry(0.08, 0.1, 48);
-    const dotGeo = new THREE.CircleGeometry(0.012, 24);
-    const mat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.9 });
+    const depth = 0.85;
+    const ringGeo = new THREE.RingGeometry(0.009, 0.013, 32);
+    const dotGeo = new THREE.CircleGeometry(0.004, 16);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x7dd3fc,
+      transparent: true,
+      opacity: 0.65,
+      depthTest: false,
+      depthWrite: false,
+    });
     const ring = new THREE.Mesh(ringGeo, mat);
     const dot = new THREE.Mesh(dotGeo, mat.clone());
-    ring.position.z = -0.5;
-    dot.position.z = -0.5;
+    dot.material.opacity = 0.85;
+    ring.position.z = -depth;
+    dot.position.z = -depth;
     group.add(ring, dot);
     group.userData.reticleRing = ring;
+    group.renderOrder = 999;
     return group;
   }
 
@@ -151,8 +160,8 @@ export class StereoRenderer {
   setReticleProgress(t) {
     const ring = this.reticle.userData.reticleRing;
     if (ring) {
-      ring.scale.setScalar(1 + t * 0.35);
-      ring.material.opacity = 0.5 + t * 0.5;
+      ring.scale.setScalar(1 + t * 0.12);
+      ring.material.opacity = 0.45 + t * 0.4;
     }
   }
 

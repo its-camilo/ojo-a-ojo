@@ -30,7 +30,7 @@ export function renderSummary(root, { onNavigate }) {
     }
     return `<tr>
       <td>${title}</td>
-      <td><pre class="metrics-json">${escapeHtml(formatMetrics(m))}</pre></td>
+      <td class="metrics-cell">${escapeHtml(formatMetricsHuman(id, m))}</td>
       <td>${escapeHtml(m.interpretation || '—')}</td>
     </tr>`;
   }).join('');
@@ -77,13 +77,47 @@ export function renderSummary(root, { onNavigate }) {
   root.querySelector('#btn-home').onclick = () => onNavigate('home');
 }
 
-function formatMetrics(m) {
-  const copy = { ...m };
-  delete copy.interpretation;
-  delete copy.recordedAt;
-  if (copy.moduleId) delete copy.moduleId;
-  if (copy.title) delete copy.title;
-  return JSON.stringify(copy, null, 2);
+function formatMetricsHuman(id, m) {
+  const fmtNum = (n, d = 2) =>
+    typeof n === 'number' && Number.isFinite(n) ? n.toFixed(d).replace('.', ',') : '—';
+
+  switch (id) {
+    case 'balance':
+      return `Razón de balance: ${fmtNum(m.imbalanceRatio)} (${m.trials ?? '—'} ensayos, ${m.reversals ?? '—'} reversiones)`;
+    case 'hollow-mask':
+      return `Monocular: ${labelPercept(m.monoPercept)} · Estéreo: ${labelPercept(m.stereoPercept)}`;
+    case 'ames':
+      return `Monocular: ${labelJudge(m.monoJudgment)} · Estéreo: ${labelJudge(m.stereoJudgment)}`;
+    case 'rds': {
+      const arc =
+        typeof m.disparityArcsec === 'number' && Number.isFinite(m.disparityArcsec)
+          ? Math.round(m.disparityArcsec)
+          : '—';
+      return `Disparidad: ${m.disparityPx ?? '—'} px (~${arc}″) · Mono: ${labelDepth(m.monoDepth)} · Estéreo: ${labelDepth(m.stereoDepth)}`;
+    }
+    default:
+      return '—';
+  }
+}
+
+function labelPercept(p) {
+  if (p === 'convex') return 'convexa';
+  if (p === 'concave') return 'cóncava';
+  return p ?? '—';
+}
+
+function labelJudge(j) {
+  if (j === 'left') return 'izquierda más grande';
+  if (j === 'right') return 'derecha más grande';
+  if (j === 'equal') return 'iguales';
+  return j ?? '—';
+}
+
+function labelDepth(d) {
+  if (d === 'near') return 'adelante';
+  if (d === 'far') return 'atrás';
+  if (d === 'none') return 'no veo figura';
+  return d ?? '—';
 }
 
 function escapeHtml(s) {

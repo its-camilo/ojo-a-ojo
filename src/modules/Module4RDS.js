@@ -4,7 +4,7 @@ import rdsFrag from '../shaders/rds-particles.frag.glsl?raw';
 import { injectColorOps, prepareGlslForThree } from '../utils/shaderBuild.js';
 import { disparityPxToArcsec } from '../utils/arcsec.js';
 import { LAYER_LEFT, LAYER_RIGHT } from '../viewer/StereoRenderer.js';
-import { createGazeButton } from './createInteractable.js';
+import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
 
 export class Module4RDS {
@@ -42,9 +42,10 @@ export class Module4RDS {
     const dummy = new THREE.Object3D();
     for (let i = 0; i < count; i++) {
       const x = (Math.random() - 0.5) * spread;
-      const y = (Math.random() - 0.5) * spread * 0.7;
-      const z = (Math.random() - 0.5) * 0.4 - 2;
-      const inSquare = Math.abs(x) < 0.35 && Math.abs(y) < 0.35;
+      const ly = (Math.random() - 0.5) * spread * 0.55;
+      const y = ly + 0.35;
+      const z = (Math.random() - 0.5) * 0.35 - 2.55;
+      const inSquare = Math.abs(x) < 0.35 && Math.abs(ly) < 0.35;
       const disp = inSquare ? halfDisp : 0;
 
       dummy.position.set(x - disp, y, z);
@@ -62,23 +63,15 @@ export class Module4RDS {
   }
 
   _buildUI() {
-    this.ui = new THREE.Group();
-    const arc = disparityPxToArcsec(this.calibration.ppi, this.disparityPx);
-    const pl = this.phase === 'mono' ? 'MONOCULAR' : 'ESTÉREO';
-    this.ui.add(
-      createGazeButton(
-        `${pl}: figura central ADELANTE (~${this.disparityPx}px, ~${arc?.toFixed(0) ?? '?'} arcsec)`,
-        new THREE.Vector3(0, 0.65, -1.3),
-        () => this._answer('near')
-      )
-    );
-    this.ui.add(
-      createGazeButton(`${pl}: figura central ATRÁS`, new THREE.Vector3(0, 0.25, -1.3), () => this._answer('far'))
-    );
-    this.ui.add(
-      createGazeButton(`${pl}: NO veo figura`, new THREE.Vector3(0, -0.15, -1.3), () => this._answer('none'))
-    );
-    this.group.add(this.ui);
+    if (!this.ui) this.ui = new THREE.Group();
+    clearGroup(this.ui);
+    const tag = this.phase === 'mono' ? 'Mono' : 'Estéreo';
+    createButtonRow([
+      { label: `${tag}: Adelante`, onSelect: () => this._answer('near') },
+      { label: `${tag}: Atrás`, onSelect: () => this._answer('far') },
+      { label: `${tag}: No veo`, onSelect: () => this._answer('none') },
+    ]).forEach((b) => this.ui.add(b));
+    if (!this.ui.parent) this.group.add(this.ui);
   }
 
   _answer(depth) {

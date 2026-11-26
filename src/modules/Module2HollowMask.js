@@ -1,22 +1,7 @@
 import * as THREE from 'three';
-import { createGazeButton } from './createInteractable.js';
+import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
-
-function buildConcaveFaceGeometry() {
-  const geo = new THREE.SphereGeometry(0.9, 48, 32, 0, Math.PI * 2, 0, Math.PI * 0.85);
-  geo.scale(1, 1.15, 0.55);
-  const pos = geo.attributes.position;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    const z = pos.getZ(i);
-    const concave = z * (1 - 0.35 * Math.exp(-(x * x + y * y) * 1.2));
-    pos.setZ(i, concave);
-  }
-  pos.needsUpdate = true;
-  geo.computeVertexNormals();
-  return geo;
-}
+import { buildHollowFaceGeometry } from './hollowFaceGeometry.js';
 
 export class Module2HollowMask {
   constructor(stereo, monoRound, onComplete) {
@@ -30,21 +15,24 @@ export class Module2HollowMask {
   }
 
   _buildScene() {
-    const light = new THREE.DirectionalLight(0xfff5e6, 1.1);
-    light.position.set(0, 3, 1.5);
-    this.group.add(light);
-    this.group.add(new THREE.AmbientLight(0x404860, 0.35));
+    const key = new THREE.DirectionalLight(0xfff8f0, 1.5);
+    key.position.set(0.2, 2.8, 2.2);
+    this.group.add(key);
+    const fill = new THREE.DirectionalLight(0xb8d4ff, 0.35);
+    fill.position.set(-1.5, 0.5, 1);
+    this.group.add(fill);
+    this.group.add(new THREE.AmbientLight(0xf0ebe3, 0.55));
 
-    const geo = buildConcaveFaceGeometry();
+    const geo = buildHollowFaceGeometry();
     const mat = new THREE.MeshStandardMaterial({
-      color: 0xd4c4b0,
-      roughness: 0.65,
-      metalness: 0.05,
+      color: 0xf3ece4,
+      roughness: 0.42,
+      metalness: 0.02,
       side: THREE.DoubleSide,
     });
     this.mask = new THREE.Mesh(geo, mat);
-    this.mask.position.set(0, 0.2, -2.2);
-    this.mask.rotation.x = -0.15;
+    this.mask.position.set(0, 0.38, -2.45);
+    this.mask.rotation.x = -0.08;
     this.group.add(this.mask);
 
     this.ui = new THREE.Group();
@@ -56,17 +44,11 @@ export class Module2HollowMask {
 
   _promptButtons() {
     clearGroup(this.ui);
-    const phaseLabel = this.phase === 'mono' ? 'MONOCULAR (ipd=0)' : 'ESTÉREO';
-    this.ui.add(
-      createGazeButton(`Ronda ${phaseLabel}: CONVEXA (saliente)`, new THREE.Vector3(-1.15, -0.75, -1.4), () =>
-        this._answer('convex')
-      )
-    );
-    this.ui.add(
-      createGazeButton(`Ronda ${phaseLabel}: CÓNCAVA (hueca)`, new THREE.Vector3(1.15, -0.75, -1.4), () =>
-        this._answer('concave')
-      )
-    );
+    const tag = this.phase === 'mono' ? 'Mono' : 'Estéreo';
+    createButtonRow([
+      { label: `${tag}: Convexa`, onSelect: () => this._answer('convex') },
+      { label: `${tag}: Cóncava`, onSelect: () => this._answer('concave') },
+    ]).forEach((b) => this.ui.add(b));
   }
 
   _answer(percept) {
