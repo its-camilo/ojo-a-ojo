@@ -1,7 +1,8 @@
 import * as THREE from 'three';
+import { LAYER_BOTH } from '../viewer/StereoRenderer.js';
 
-const CANVAS_W = 720;
-const CANVAS_H = 192;
+const CANVAS_W = 768;
+const CANVAS_H = 200;
 
 function drawLabelTexture(label) {
   const canvas = document.createElement('canvas');
@@ -9,25 +10,26 @@ function drawLabelTexture(label) {
   canvas.height = CANVAS_H;
   const ctx = canvas.getContext('2d');
 
-  const pad = 20;
-  ctx.fillStyle = '#0f1b2e';
-  roundRect(ctx, pad / 2, pad / 2, CANVAS_W - pad, CANVAS_H - pad, 14);
+  const pad = 16;
+  const rx = 12;
+  ctx.fillStyle = '#1b2d47';
+  roundRect(ctx, pad / 2, pad / 2, CANVAS_W - pad, CANVAS_H - pad, rx);
   ctx.fill();
 
-  ctx.strokeStyle = '#3b82f6';
-  ctx.lineWidth = 3;
-  roundRect(ctx, pad / 2, pad / 2, CANVAS_W - pad, CANVAS_H - pad, 14);
+  ctx.strokeStyle = '#68b5eb';
+  ctx.lineWidth = 4;
+  roundRect(ctx, pad / 2, pad / 2, CANVAS_W - pad, CANVAS_H - pad, rx);
   ctx.stroke();
 
-  let fontSize = label.length > 18 ? 36 : label.length > 12 ? 40 : 48;
-  ctx.fillStyle = '#f1f5f9';
+  let fontSize = label.length > 20 ? 46 : label.length > 14 ? 50 : 56;
+  ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
+  ctx.font = `650 ${fontSize}px "DM Sans", system-ui, sans-serif`;
 
-  while (fontSize > 26 && ctx.measureText(label).width > CANVAS_W - pad * 4) {
+  while (fontSize > 30 && ctx.measureText(label).width > CANVAS_W - pad * 5) {
     fontSize -= 2;
-    ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
+    ctx.font = `650 ${fontSize}px "DM Sans", system-ui, sans-serif`;
   }
   ctx.fillText(label, CANVAS_W / 2, CANVAS_H / 2);
 
@@ -49,8 +51,8 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 export function createGazeButton(label, position, onSelect, options = {}) {
-  const width = options.width ?? 0.72;
-  const height = options.height ?? 0.19;
+  const width = options.width ?? 0.98;
+  const height = options.height ?? 0.26;
   const tex = drawLabelTexture(label);
 
   const geo = new THREE.PlaneGeometry(width, height);
@@ -62,11 +64,11 @@ export function createGazeButton(label, position, onSelect, options = {}) {
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.copy(position);
-  // Plano en XY con normal +Z, hacia el observador en el origen (mira a −Z).
   mesh.rotation.set(0, 0, 0);
   mesh.renderOrder = 10;
   mesh.userData.gazeButton = true;
   mesh.userData.label = label;
   mesh.userData.onSelect = onSelect;
+  mesh.layers.enable(LAYER_BOTH);
   return mesh;
 }

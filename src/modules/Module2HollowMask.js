@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
 import { buildHollowFaceGeometry } from './hollowFaceGeometry.js';
-import { installStudioEnvironment, addStudioLights } from '../utils/pbrEnvironment.js';
-import { makePlasterTexture, makeRoughnessFromCanvas } from '../utils/proceduralTextures.js';
+import { makePlasterTexture } from '../utils/proceduralTextures.js';
+import { enableSharedStereoLayers } from '../utils/stereoLayers.js';
 
 export class Module2HollowMask {
   constructor(stereo, monoRound, onComplete) {
@@ -13,72 +13,63 @@ export class Module2HollowMask {
     this.group = new THREE.Group();
     this.phase = 'mono';
     this.answers = {};
-    this._envHandle = null;
     this._buildScene();
   }
 
   _buildScene() {
-    this._envHandle = installStudioEnvironment(this.stereo.renderer, this.stereo.scene);
-    this.stereo.scene.background = new THREE.Color(0x080c10);
+    this.stereo.scene.background = new THREE.Color(0x0a0e14);
 
     const floor = new THREE.Mesh(
       new THREE.CircleGeometry(1.6, 48),
-      new THREE.MeshStandardMaterial({ color: 0x141820, roughness: 0.9, metalness: 0.05 })
+      new THREE.MeshStandardMaterial({ color: 0x161c24, roughness: 0.92, metalness: 0 })
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.set(0, -0.95, -2.4);
-    floor.receiveShadow = true;
     this.group.add(floor);
 
     const wall = new THREE.Mesh(
       new THREE.PlaneGeometry(3.2, 2),
-      new THREE.MeshStandardMaterial({ color: 0x1a2028, roughness: 0.95 })
+      new THREE.MeshStandardMaterial({ color: 0x1c242e, roughness: 0.95, side: THREE.DoubleSide })
     );
     wall.position.set(0, 0.15, -3.35);
     this.group.add(wall);
 
-    const lights = addStudioLights(this.group, { keyInt: 0.35, fillInt: 0.15, ambient: 0.08 });
-    const ugraze = new THREE.SpotLight(0xfff0d8, 3.2, 12, 0.55, 0.4);
-    ugraze.position.set(0.1, -0.4, -1.4);
-    ugraze.target.position.set(0, 0.35, -2.5);
-    ugraze.castShadow = true;
-    this.group.add(ugraze, ugraze.target);
+    const key = new THREE.DirectionalLight(0xe0d4c8, 0.62);
+    key.position.set(0.5, 1.05, -0.15);
+    const rim = new THREE.DirectionalLight(0xb8a898, 0.38);
+    rim.position.set(1.5, 0.35, -1.05);
+    const fill = new THREE.DirectionalLight(0x98a8c0, 0.3);
+    fill.position.set(-1.3, 0.2, -0.35);
+    const lowFill = new THREE.PointLight(0xc8b0a0, 0.38, 8);
+    lowFill.position.set(0.12, -0.22, -1.55);
+    this.group.add(key, rim, fill, lowFill, new THREE.AmbientLight(0xa0a8b8, 0.55));
 
     const plasterMap = makePlasterTexture();
     plasterMap.repeat.set(2, 2);
-    const roughMap = makeRoughnessFromCanvas(plasterMap, 0.42);
-
     const geo = buildHollowFaceGeometry();
-    const mat = new THREE.MeshPhysicalMaterial({
+    const mat = new THREE.MeshLambertMaterial({
       map: plasterMap,
-      roughnessMap: roughMap,
-      color: 0xf2ebe3,
-      roughness: 0.52,
-      metalness: 0.02,
-      clearcoat: 0.08,
+      color: 0xcfc6b8,
       side: THREE.DoubleSide,
     });
     this.mask = new THREE.Mesh(geo, mat);
     this.mask.position.set(0, 0.32, -2.42);
     this.mask.rotation.x = -0.06;
-    this.mask.castShadow = true;
-    this.mask.receiveShadow = true;
     this.group.add(this.mask);
 
     const plinth = new THREE.Mesh(
       new THREE.BoxGeometry(0.35, 0.9, 0.35),
-      new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 0.55, metalness: 0.2 })
+      new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 0.65, metalness: 0.1 })
     );
     plinth.position.set(0, -0.5, -2.55);
-    plinth.castShadow = true;
     this.group.add(plinth);
 
     this.ui = new THREE.Group();
     this._promptButtons();
     this.group.add(this.ui);
+    enableSharedStereoLayers(this.group);
 
     this.stereo.setMono(this.phase === 'mono');
-    void lights;
   }
 
   _promptButtons() {
@@ -121,6 +112,8 @@ export class Module2HollowMask {
   }
 
   mount() {
+    this.stereo.scene.background = new THREE.Color(0x0a0e14);
+    this.stereo.scene.environment = null;
     this.stereo.addToScene(this.group);
   }
 
@@ -128,7 +121,6 @@ export class Module2HollowMask {
     this.stereo.removeFromScene(this.group);
     this.mask.geometry.dispose();
     this.mask.material.dispose();
-    this._envHandle?.dispose();
   }
 
   getInteractables() {
