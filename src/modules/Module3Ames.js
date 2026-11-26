@@ -29,11 +29,20 @@ export class Module3Ames {
 
   _buildPromptButtons() {
     clearGroup(this.ui);
-    const tag = this.phase === 'mono' ? 'Mono' : 'Estéreo';
+    const phase = this.phase === 'mono' ? 'Un ojo' : 'Dos ojos';
     createButtonRow([
-      { label: `${tag}: Izquierda`, onSelect: () => this._answer('left') },
-      { label: `${tag}: Derecha`, onSelect: () => this._answer('right') },
-      { label: `${tag}: Igual`, onSelect: () => this._answer('equal') },
+      {
+        label: `Izquierda más grande\n(${phase} · figura roja)`,
+        onSelect: () => this._answer('left'),
+      },
+      {
+        label: `Derecha más grande\n(${phase} · figura azul)`,
+        onSelect: () => this._answer('right'),
+      },
+      {
+        label: `Mismo tamaño\n(${phase} · se ven iguales)`,
+        onSelect: () => this._answer('equal'),
+      },
     ]).forEach((b) => this.ui.add(b));
   }
 

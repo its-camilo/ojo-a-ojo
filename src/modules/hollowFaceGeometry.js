@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /** Máscara facial cóncava (interior hacia el observador) — relieve tipo galería. */
 export function buildHollowFaceGeometry() {
-  const geo = new THREE.SphereGeometry(0.78, 192, 192, 0, Math.PI * 2, 0.11 * Math.PI, 0.8 * Math.PI);
+  const geo = new THREE.SphereGeometry(0.78, 84, 72, 0, Math.PI * 2, 0.11 * Math.PI, 0.8 * Math.PI);
   const pos = geo.attributes.position;
 
   for (let i = 0; i < pos.count; i++) {

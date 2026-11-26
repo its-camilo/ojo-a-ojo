@@ -45,7 +45,7 @@ export class Module1Balance {
     matRight.uniforms.eyePass.value = 2;
 
     const pedestal = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.55, 0.62, 0.12, 64),
+      new THREE.CylinderGeometry(0.55, 0.62, 0.12, 28),
       new THREE.MeshPhysicalMaterial({
         color: 0x1e2a40,
         metalness: 0.72,
@@ -62,7 +62,7 @@ export class Module1Balance {
     this.group.add(pedestal);
 
     const pedestalDisc = new THREE.Mesh(
-      new THREE.CircleGeometry(0.54, 64),
+      new THREE.CircleGeometry(0.54, 32),
       new THREE.MeshStandardMaterial({
         color: 0x9ab4e8,
         metalness: 0.95,
@@ -78,7 +78,7 @@ export class Module1Balance {
     this.group.add(pedestalDisc);
 
     const arch = new THREE.Mesh(
-      new THREE.TorusGeometry(0.95, 0.025, 8, 64, Math.PI),
+      new THREE.TorusGeometry(0.95, 0.025, 8, 32, Math.PI),
       new THREE.MeshStandardMaterial({ color: 0x2a3d5c, metalness: 0.7, roughness: 0.35 })
     );
     arch.rotation.x = Math.PI / 2;
@@ -88,7 +88,7 @@ export class Module1Balance {
     this.group.add(arch);
 
     const lensBody = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.38, 0.42, 0.18, 72),
+      new THREE.CylinderGeometry(0.38, 0.42, 0.18, 32),
       new THREE.MeshPhysicalMaterial({
         color: 0x28344c,
         metalness: 0.88,
@@ -105,7 +105,7 @@ export class Module1Balance {
 
     for (let i = 0; i < 6; i++) {
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.2 + i * 0.082, 0.011, 20, 96),
+        new THREE.TorusGeometry(0.2 + i * 0.082, 0.011, 12, 32),
         new THREE.MeshStandardMaterial({
           color: 0xd0e0f8,
           emissive: 0x2a4060,
@@ -120,7 +120,7 @@ export class Module1Balance {
       this.group.add(ring);
     }
 
-    const torusL = new THREE.Mesh(new THREE.TorusKnotGeometry(0.28, 0.07, 64, 12), matLeft);
+    const torusL = new THREE.Mesh(new THREE.TorusKnotGeometry(0.28, 0.07, 48, 8), matLeft);
     torusL.layers.set(LAYER_LEFT);
     torusL.position.set(-0.28, 0.22, -2.32);
     torusL.castShadow = true;
@@ -135,7 +135,7 @@ export class Module1Balance {
     rodL.position.set(-0.42, -0.35, -2.05);
     rodL.rotation.z = 0.25;
 
-    const sphereR = new THREE.Mesh(new THREE.SphereGeometry(0.22, 32, 20), matRight);
+    const sphereR = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 16), matRight);
     sphereR.layers.set(LAYER_RIGHT);
     sphereR.position.set(0.48, 0.38, -2.12);
 
@@ -171,15 +171,32 @@ export class Module1Balance {
   _buildUI() {
     this.ui = new THREE.Group();
     createButtonRow([
-      { label: 'Izquierda', onSelect: () => this._trial(false) },
-      { label: 'Derecha', onSelect: () => this._trial(true) },
-      { label: 'Terminar', onSelect: () => this._finish() },
+      {
+        label: 'Domina Izquierda\n(veo más claro el ojo izq.)',
+        onSelect: () => this._trial(false),
+      },
+      {
+        label: 'Domina Derecha\n(veo más claro el ojo der.)',
+        onSelect: () => this._trial(true),
+      },
+      {
+        label: 'Equilibrado\n(ambos ojos igual)',
+        onSelect: () => this._trialBalanced(),
+      },
     ]).forEach((b) => this.ui.add(b));
     this.group.add(this.ui);
   }
 
   _trial(reportRight) {
     const est = this.staircase.record(reportRight);
+    if (est.done) this._finish();
+    this.leftContrast = est.imbalanceRatio;
+    this.rightContrast = 1.0;
+    this._syncContrasts();
+  }
+
+  _trialBalanced() {
+    const est = this.staircase.recordBalanced();
     if (est.done) this._finish();
     this.leftContrast = est.imbalanceRatio;
     this.rightContrast = 1.0;

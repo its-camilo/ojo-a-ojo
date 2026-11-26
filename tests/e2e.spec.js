@@ -72,14 +72,15 @@ test('Ojo a Ojo — flujo Cardboard completo sin errores WebGL', async ({ page }
   await expect(page).toHaveURL(/\/resumen\/?$/);
   await expect(page.getByRole('heading', { name: /Resumen de tamizaje/i })).toBeVisible();
 
-  const table = page.getByTestId('summary-table');
-  await expect(table).not.toContainText('No realizado');
-  await expect(table.getByRole('cell', { name: 'Balance dicóptico 3D', exact: true })).toBeVisible();
-  await expect(table.getByRole('cell', { name: 'Máscara hueca 3D', exact: true })).toBeVisible();
-  await expect(table.getByRole('cell', { name: 'Cuarto de Ames 3D', exact: true })).toBeVisible();
-  await expect(table.getByRole('cell', { name: 'RDS 3D grueso (Julesz)', exact: true })).toBeVisible();
-  await expect(table.locator('.metrics-cell').first()).toContainText(/Razón de balance/);
-  await expect(table.locator('.metrics-cell').nth(3)).toContainText(/Disparidad: 6 px/);
+  const summary = page.getByTestId('summary-table');
+  await expect(summary).not.toContainText('No realizado en esta sesión');
+  await expect(page.getByTestId('summary-card-balance')).toBeVisible();
+  await expect(page.getByTestId('summary-card-hollow-mask')).toBeVisible();
+  await expect(page.getByTestId('summary-card-ames')).toBeVisible();
+  await expect(page.getByTestId('summary-card-rds')).toBeVisible();
+  await expect(page.getByTestId('summary-metrics-balance')).toContainText(/Razón de balance/);
+  await expect(page.getByTestId('summary-metrics-rds')).toContainText(/Disparidad: 6 px/);
+  await expect(page.getByTestId('summary-global')).toContainText(/.+/);
 
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '07-resumen.png'), fullPage: true });
 

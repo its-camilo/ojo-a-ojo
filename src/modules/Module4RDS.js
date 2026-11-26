@@ -47,7 +47,7 @@ export class Module4RDS {
     this.group.add(housing);
 
     const bevel = new THREE.Mesh(
-      new THREE.TorusGeometry(0.92, 0.022, 10, 72),
+      new THREE.TorusGeometry(0.92, 0.022, 8, 32),
       new THREE.MeshStandardMaterial({
         color: 0xc8e6ff,
         emissive: 0x3d6a9e,
@@ -83,7 +83,7 @@ export class Module4RDS {
     const spread = 2;
     const halfDisp = (this.disparityPx / (this.calibration.ppi || 400)) * 0.012;
 
-    const seedGeo = new THREE.SphereGeometry(0.016, 10, 10);
+    const seedGeo = new THREE.SphereGeometry(0.016, 8, 8);
     const mat = new THREE.MeshPhysicalMaterial({
       color: 0xd6eeff,
       emissive: 0x4a98e8,
@@ -143,11 +143,20 @@ export class Module4RDS {
   _buildUI() {
     if (!this.ui) this.ui = new THREE.Group();
     clearGroup(this.ui);
-    const tag = this.phase === 'mono' ? 'Mono' : 'Estéreo';
+    const phase = this.phase === 'mono' ? 'Un ojo' : 'Dos ojos';
     createButtonRow([
-      { label: `${tag}: Adelante`, onSelect: () => this._answer('near') },
-      { label: `${tag}: Atrás`, onSelect: () => this._answer('far') },
-      { label: `${tag}: No veo`, onSelect: () => this._answer('none') },
+      {
+        label: `Sobresale\n(${phase} · sale hacia mí)`,
+        onSelect: () => this._answer('near'),
+      },
+      {
+        label: `Se hunde\n(${phase} · va hacia atrás)`,
+        onSelect: () => this._answer('far'),
+      },
+      {
+        label: `Plano / No veo\n(${phase} · sin relieve 3D)`,
+        onSelect: () => this._answer('none'),
+      },
     ]).forEach((b) => this.ui.add(b));
     if (!this.ui.parent) this.group.add(this.ui);
   }

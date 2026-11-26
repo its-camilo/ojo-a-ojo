@@ -37,11 +37,12 @@ export function renderCalibration(root, state, { onNavigate }) {
     <main class="screen screen--calibration screen--calibration-landscape" data-calib-orientation="${isLandscape ? 'landscape' : 'portrait'}">
       <header>
         <h1>Calibración en pantalla normal</h1>
-        <p class="lead">Persistida en localStorage. Realice este paso <strong>antes</strong> de colocar el celular en el visor.</p>
+        <p class="lead">Ajustes guardados en este dispositivo. Hágalo con el celular en <strong>pantalla normal y horizontal</strong>, antes de meterlo en el Cardboard.</p>
       </header>
 
       <section class="card" id="card-ppi" data-ppi-source="${c.ppiManual ? 'manual' : 'auto'}" data-ppi-auto="${(c.ppiAuto ?? detection.ppi).toFixed(1)}">
-        <h2>PPI con tarjeta bancaria (ISO 7810: ${CARD_W_MM}×${CARD_H_MM} mm, Li et al., 2020)</h2>
+        <h2>Tamaño real de pantalla (PPI)</h2>
+        <p class="hint">Superpone una tarjeta bancaria (${CARD_W_MM}×${CARD_H_MM} mm) al rectángulo hasta que coincidan. Así las pruebas de disparidad y los botones 3D mantienen escala correcta en milímetros.</p>
         <p id="ppi-auto-status" class="hint" data-testid="ppi-auto-status">${
           c.ppiManual
             ? `Ajuste manual activo (${c.ppi.toFixed(1)} PPI). Puede volver a la detección automática.`
@@ -73,7 +74,8 @@ export function renderCalibration(root, state, { onNavigate }) {
       </section>
 
       <section class="card">
-        <h2>Separación virtual (IPD, mm)</h2>
+        <h2>Separación entre ojos (IPD, mm)</h2>
+        <p class="hint">Distancia habitual entre las pupilas. Si la deja en ~64 mm, cada ojo en el visor verá la escena como si mirara desde su posición real.</p>
         <label class="field">IPD
           <input type="range" id="ipd-slider" min="54" max="72" step="0.1" value="${c.ipdMm}" />
           <output id="ipd-out">${c.ipdMm}</output> mm (default Cardboard 63,9 mm)
@@ -81,7 +83,8 @@ export function renderCalibration(root, state, { onNavigate }) {
       </section>
 
       <section class="card" id="nonius-section">
-        <h2>Patrón Nonius (alineación dicóptica · mitades izquierda/derecha en horizontal)</h2>
+        <h2>Alineación entre mitades (Nonius)</h2>
+        <p class="hint">Desplaza el patrón hasta que las líneas de izquierda y derecha queden alineadas al colocar el celular en el visor; corrige pequeños desajustes mecánicos.</p>
         <div class="nonius-canvas-wrap">
           <canvas id="nonius-canvas" width="${Math.round(guideW)}" height="${NONIUS_HEIGHT}" aria-label="Patrón Nonius"></canvas>
         </div>
@@ -91,8 +94,8 @@ export function renderCalibration(root, state, { onNavigate }) {
       </section>
 
       <section class="card">
-        <h2>Distorsión de lentes (Brown-Conrady, Cardboard)</h2>
-        <p>k1 default 0,33582564 · k2 default 0,55348791 — calibrables.</p>
+        <h2>Corrección de lentes (Brown-Conrady, Cardboard)</h2>
+        <p class="hint">Las lentes del visor curvan la imagen; k1 y k2 la enderezan en el shader. Los valores por defecto suelen bastar; ajuste si ve bordes borrosos o doble contorno.</p>
         <label class="field">k1 <input type="range" id="k1" min="0" max="0.8" step="0.0001" value="${c.k1}" /></label>
         <label class="field">k2 <input type="range" id="k2" min="0" max="1.2" step="0.0001" value="${c.k2}" /></label>
         <canvas id="grid-preview" width="320" height="160" class="grid-preview"></canvas>
@@ -100,6 +103,7 @@ export function renderCalibration(root, state, { onNavigate }) {
 
       <section class="card ios-block" id="ios-gyro" hidden>
         <h2>Giroscopio (iOS Safari)</h2>
+        <p class="hint">Safari exige un toque para leer el giroscopio: active aquí o al abrir un módulo. Sin él, puede arrastrar el dedo para mirar en el visor.</p>
         <button type="button" class="btn btn--primary" id="btn-gyro">Activar giroscopio</button>
         <p id="gyro-status" class="hint" aria-live="polite"></p>
       </section>
