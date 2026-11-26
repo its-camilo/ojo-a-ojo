@@ -19,7 +19,7 @@ export class Module2HollowMask {
 
   _buildScene() {
     const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(1.8, 64),
+      new THREE.CircleGeometry(1.8, 32),
       new THREE.MeshStandardMaterial({ color: 0xe8e4dc, roughness: 0.42, metalness: 0.05 })
     );
     floor.rotation.x = -Math.PI / 2;
@@ -75,12 +75,12 @@ export class Module2HollowMask {
     this.group.add(this.mask);
 
     const plinth = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.22, 0.28, 0.88, 32),
+      new THREE.CylinderGeometry(0.22, 0.28, 0.88, 20),
       new THREE.MeshStandardMaterial({ color: 0xe0dcd4, roughness: 0.38, metalness: 0.08 })
     );
     plinth.position.set(0, -0.48, -2.5);
     const plinthCap = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.3, 0.24, 0.06, 32),
+      new THREE.CylinderGeometry(0.3, 0.24, 0.06, 20),
       new THREE.MeshStandardMaterial({ color: 0xd4d0c8, roughness: 0.3, metalness: 0.12 })
     );
     plinthCap.position.set(0, -0.02, -2.5);
@@ -96,11 +96,17 @@ export class Module2HollowMask {
 
   _promptButtons() {
     clearGroup(this.ui);
-    const tag = this.phase === 'mono' ? 'Mono' : 'Estéreo';
+    const phase = this.phase === 'mono' ? 'Un ojo' : 'Dos ojos';
     createButtonRow([
-      { label: `${tag}: Convexa`, onSelect: () => this._answer('convex') },
-      { label: `${tag}: Cóncava`, onSelect: () => this._answer('concave') },
-    ]).forEach((b) => this.ui.add(b));
+      {
+        label: `Convexa\n(${phase} · sale hacia afuera)`,
+        onSelect: () => this._answer('convex'),
+      },
+      {
+        label: `Cóncava\n(${phase} · hueca hacia adentro)`,
+        onSelect: () => this._answer('concave'),
+      },
+    ], { preset: 'hollow' }).forEach((b) => this.ui.add(b));
   }
 
   _answer(percept) {

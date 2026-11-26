@@ -44,7 +44,7 @@ function floorWorldAt(archX, archZ) {
 
 function shadowAtFoot(archX, archZ, radius) {
   const p = floorWorldAt(archX, archZ);
-  const geo = new THREE.CircleGeometry(radius, 28);
+  const geo = new THREE.CircleGeometry(radius, 20);
   geo.applyMatrix4(
     new THREE.Matrix4().makeRotationX(-Math.PI / 2).setPosition(p.x, p.y + 0.005, p.z)
   );
@@ -151,7 +151,7 @@ function buildBackWallDetails(room) {
   const clockMatrix = new THREE.Matrix4()
     .makeRotationX(Math.PI / 2)
     .setPosition(0, clockY, zMullion + 0.04);
-  const clock = meshFromArchPrimitive(new THREE.CylinderGeometry(0.11, 0.11, 0.03, 32), clockMatrix, matFrame);
+  const clock = meshFromArchPrimitive(new THREE.CylinderGeometry(0.11, 0.11, 0.03, 20), clockMatrix, matFrame);
   const picture = meshFromArchPrimitive(
     new THREE.BoxGeometry(1, 1, 1),
     archMatrixFromBox(0, floorY + 0.95, zMullion + 0.03, 0.38, 0.48, 0.04),
@@ -188,25 +188,25 @@ export function buildArchFigure(archX, archZ, palette, yaw = 0) {
 
   part(new THREE.BoxGeometry(0.24, 0.08, 0.34), 0, 0.04, 0.02, shoe);
   part(new THREE.BoxGeometry(0.22, 0.46, 0.2), 0, 0.31, 0, pants);
-  part(new THREE.CylinderGeometry(0.105, 0.095, 0.34, 16), 0, 0.75, 0, pants);
-  part(new THREE.CylinderGeometry(0.13, 0.12, 0.38, 18), 0, 1.06, 0, cloth);
-  const shoulders = new THREE.Mesh(new THREE.SphereGeometry(0.15, 20, 16), cloth);
+  part(new THREE.CylinderGeometry(0.105, 0.095, 0.34, 12), 0, 0.75, 0, pants);
+  part(new THREE.CylinderGeometry(0.13, 0.12, 0.38, 14), 0, 1.06, 0, cloth);
+  const shoulders = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 12), cloth);
   shoulders.scale.set(1.05, 0.45, 0.75);
   shoulders.position.set(0, 1.32, 0);
   fig.add(shoulders);
 
-  part(new THREE.CylinderGeometry(0.055, 0.052, 0.28, 12), -0.17, 1.04, 0.02, cloth);
-  part(new THREE.CylinderGeometry(0.048, 0.044, 0.26, 12), -0.19, 0.78, 0.02, cloth);
-  part(new THREE.CylinderGeometry(0.055, 0.052, 0.28, 12), 0.17, 1.04, 0.02, cloth);
-  part(new THREE.CylinderGeometry(0.048, 0.044, 0.26, 12), 0.19, 0.78, 0.02, cloth);
+  part(new THREE.CylinderGeometry(0.055, 0.052, 0.28, 10), -0.17, 1.04, 0.02, cloth);
+  part(new THREE.CylinderGeometry(0.048, 0.044, 0.26, 10), -0.19, 0.78, 0.02, cloth);
+  part(new THREE.CylinderGeometry(0.055, 0.052, 0.28, 10), 0.17, 1.04, 0.02, cloth);
+  part(new THREE.CylinderGeometry(0.048, 0.044, 0.26, 10), 0.19, 0.78, 0.02, cloth);
 
-  part(new THREE.CylinderGeometry(0.05, 0.055, 0.1, 14), 0, 1.38, 0.01, skin);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 28), skin);
+  part(new THREE.CylinderGeometry(0.05, 0.055, 0.1, 10), 0, 1.38, 0.01, skin);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 24, 20), skin);
   head.scale.set(1, 1.08, 0.95);
   head.position.set(0, 1.52, 0.02);
   fig.add(head);
   const hairMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.115, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
+    new THREE.SphereGeometry(0.115, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55),
     hair
   );
   hairMesh.position.set(0, 1.58, -0.02);

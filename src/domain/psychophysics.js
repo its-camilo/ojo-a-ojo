@@ -54,6 +54,24 @@ export class Staircase1up1down {
     return this.getEstimate();
   }
 
+  /** Usuario reporta equilibrio aparente entre ojos: converge hacia IR ≈ 1. */
+  recordBalanced() {
+    if (this.done) return this.getEstimate();
+    const prev = this.value;
+    const nudged = prev + (0.5 - prev) * 0.45;
+    this.value = Math.max(this.min, Math.min(this.max, nudged));
+    const direction = this.value > prev ? 1 : this.value < prev ? -1 : 0;
+    if (direction !== 0 && this.lastDirection !== null && direction !== this.lastDirection) {
+      this.reversals.push(this.value);
+      if (this.reversals.length >= this.maxReversals) this.done = true;
+    }
+    if (direction !== 0) this.lastDirection = direction;
+    this.trials.push({ value: this.value, balanced: true });
+    this.trialCount += 1;
+    if (this.trialCount >= this.maxTrials) this.done = true;
+    return this.getEstimate();
+  }
+
   getEstimate() {
     if (this.reversals.length >= this.averageLastN) {
       const tail = this.reversals.slice(-this.averageLastN);

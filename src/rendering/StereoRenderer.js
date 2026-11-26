@@ -7,8 +7,9 @@ import {
   computeSafePixelRatio,
   computeEyeRttSize,
   createEyeRenderTarget,
-  EYE_RTT_SUPERSAMPLE,
+  getEyeRttSupersample,
   getGpuDimensionCap,
+  isMobileViewport,
 } from './renderQuality.js';
 
 const LAYER_LEFT = 1;
@@ -114,7 +115,8 @@ export class StereoRenderer {
       pixelRatio: this.pixelRatio,
       eyeRttWidth: this.eyeRttWidth,
       eyeRttHeight: this.eyeRttHeight,
-      rttSupersample: EYE_RTT_SUPERSAMPLE,
+      rttSupersample: getEyeRttSupersample(),
+      mobileProfile: isMobileViewport(),
       msaaSamples: this.msaaSamples,
       maxAnisotropy: this.renderer.capabilities.getMaxAnisotropy(),
       gpuDimensionCap: this.gpuCap,
@@ -219,7 +221,7 @@ export class StereoRenderer {
 
   setReticleProgress(t, targeting = false) {
     const ud = this.reticle.userData;
-    const step = Math.floor(t * 40);
+    const step = Math.floor(t * 16);
     if (step !== ud.reticleProgressStep) {
       ud.reticleProgressStep = step;
       if (ud.reticleProgressMesh) {
@@ -227,14 +229,14 @@ export class StereoRenderer {
         ud.reticleProgressMesh.geometry.dispose();
         ud.reticleProgressMesh = null;
       }
-      if (t > 0.02) {
+      if (t > 0.02 && targeting) {
         const geo = new THREE.RingGeometry(
           0.015,
           0.0195,
-          64,
+          48,
           1,
           -Math.PI / 2,
-          Math.max(0.02, t) * Math.PI * 2
+          Math.max(0.05, t) * Math.PI * 2
         );
         const mesh = new THREE.Mesh(geo, ud.reticleProgressMat);
         mesh.position.z = -ud.reticleDepth;

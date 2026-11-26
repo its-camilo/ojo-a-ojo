@@ -1,18 +1,71 @@
 import * as THREE from 'three';
 import { createGazeButton } from '../rendering/gazeButton.js';
 
-export const UI_ROW_Y = -1.05;
-export const UI_ROW_Z = -2.2;
+export const UI_RING_Z = -2.08;
+
+/** cos(30°) y sin(30°) para θ = 210° y 330° alrededor del origen en el plano XY. */
+const COS30 = Math.cos(Math.PI / 6);
+const SIN30 = Math.sin(Math.PI / 6);
+
+const PRESETS = {
+  /** Dos botones a 180°: (-R, 0) y (+R, 0). */
+  hollow: { R: 0.92, ringZ: UI_RING_Z, width: 0.94, height: 0.3 },
+  /** Triplete circular 120° (estímulo central). */
+  balance: { R: 0.74, ringZ: UI_RING_Z, width: 0.94, height: 0.3 },
+  rds: { R: 0.72, ringZ: UI_RING_Z, width: 0.94, height: 0.3 },
+  /** Radio algo menor + botones compactos para no tapar figuras. */
+  ames: { R: 0.66, ringZ: -2.05, width: 0.82, height: 0.27 },
+};
 
 /**
- * Coloca botones de respuesta en fila debajo de la ilusión, mirando al observador.
+ * Posiciones polares: índice 0 → 210°, 1 → 330°, 2 → 90° (neutral arriba).
  */
-export function createButtonRow(specs) {
+function circularTripletPositions(R, ringZ) {
+  return [
+    new THREE.Vector3(-R * COS30, -R * SIN30, ringZ),
+    new THREE.Vector3(R * COS30, -R * SIN30, ringZ),
+    new THREE.Vector3(0, R, ringZ),
+  ];
+}
+
+/** Dos botones diametrales en y = 0. */
+function circularPairPositions(R, ringZ) {
+  return [new THREE.Vector3(-R, 0, ringZ), new THREE.Vector3(R, 0, ringZ)];
+}
+
+/**
+ * Distribuye botones en anillo circular alrededor de (0, 0) en el plano de mirada.
+ * @param {Array<{ label: string, onSelect: () => void, options?: object }>} specs
+ * @param {{ preset?: keyof typeof PRESETS, R?: number, ringZ?: number, width?: number, height?: number }} [layout]
+ */
+export function createButtonRow(specs, layout = {}) {
+  const preset = layout.preset ? PRESETS[layout.preset] ?? {} : {};
+  const R = layout.R ?? preset.R ?? 0.74;
+  const ringZ = layout.ringZ ?? preset.ringZ ?? UI_RING_Z;
+  const width = layout.width ?? preset.width ?? 0.94;
+  const height = layout.height ?? preset.height ?? 0.3;
+
   const n = specs.length;
-  const span = n === 2 ? 1.22 : n === 3 ? 1.15 : 1.28;
-  const startX = (-(n - 1) * span) / 2;
-  return specs.map((s, i) => {
-    const pos = new THREE.Vector3(startX + i * span, UI_ROW_Y, UI_ROW_Z);
-    return createGazeButton(s.label, pos, s.onSelect, s.options);
-  });
+  let positions;
+
+  if (n === 2) {
+    positions = circularPairPositions(R, ringZ);
+  } else if (n === 3) {
+    positions = circularTripletPositions(R, ringZ);
+  } else {
+    positions = [];
+    const step = (Math.PI * 2) / n;
+    for (let i = 0; i < n; i++) {
+      const theta = Math.PI / 2 + i * step;
+      positions.push(new THREE.Vector3(R * Math.cos(theta), R * Math.sin(theta), ringZ));
+    }
+  }
+
+  return specs.map((s, i) =>
+    createGazeButton(s.label, positions[i], s.onSelect, {
+      width,
+      height,
+      ...s.options,
+    })
+  );
 }

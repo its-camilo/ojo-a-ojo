@@ -82,6 +82,45 @@
   font-size: 0.92rem;
 }
 
+.summary-global {
+  margin: 0.75rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--lab-text);
+}
+
+.summary-modules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.summary-module-card {
+  margin: 0;
+  padding: 1rem 1.05rem;
+  border-radius: 8px;
+  border: 1px solid var(--lab-border);
+  background: var(--lab-surface-2);
+}
+
+.summary-module-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.summary-module-card__purpose,
+.summary-module-card__interp {
+  margin: 0.45rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--lab-muted);
+}
+
+.summary-module-card--pending {
+  opacity: 0.85;
+}
+
 .summary-table {
   width: 100%;
   border-collapse: collapse;

@@ -1,10 +1,27 @@
 import * as THREE from 'three';
 
+export function isMobileViewport() {
+  if (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0) return true;
+  if (typeof window !== 'undefined') {
+    const narrow = Math.min(window.innerWidth, window.innerHeight) < 520;
+    const coarse = window.matchMedia?.('(pointer: coarse)').matches;
+    if (narrow && coarse) return true;
+  }
+  return false;
+}
+
 /** Supersampling factor on eye RTTs over physical pixels (clamped for iOS Safari). */
-export const EYE_RTT_SUPERSAMPLE = 1.75;
+export function getEyeRttSupersample() {
+  return isMobileViewport() ? 1.22 : 1.5;
+}
+
+/** @deprecated use getEyeRttSupersample */
+export const EYE_RTT_SUPERSAMPLE = getEyeRttSupersample();
 
 /** Hard cap per RTT dimension (iPhone WebGL memory safety). */
-export const EYE_RTT_MAX_DIMENSION = 2560;
+export function getEyeRttMaxDimension() {
+  return isMobileViewport() ? 1792 : 2560;
+}
 
 let _maxAnisotropy = 4;
 
@@ -26,7 +43,7 @@ export function getMaxAnisotropy() {
 export function getGpuDimensionCap(gl) {
   const maxRb = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || 4096;
   const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 4096;
-  return Math.min(maxRb, maxTex, EYE_RTT_MAX_DIMENSION);
+  return Math.min(maxRb, maxTex, getEyeRttMaxDimension());
 }
 
 /**
@@ -54,8 +71,9 @@ export function computeSafePixelRatio(renderer, cssWidth, cssHeight) {
 export function computeEyeRttSize(renderer, eyeCssWidth, eyeCssHeight, pixelRatio) {
   const gl = renderer.getContext();
   const cap = getGpuDimensionCap(gl);
-  let w = Math.floor(eyeCssWidth * pixelRatio * EYE_RTT_SUPERSAMPLE);
-  let h = Math.floor(eyeCssHeight * pixelRatio * EYE_RTT_SUPERSAMPLE);
+  const supersample = getEyeRttSupersample();
+  let w = Math.floor(eyeCssWidth * pixelRatio * supersample);
+  let h = Math.floor(eyeCssHeight * pixelRatio * supersample);
   w = Math.max(1, Math.min(w, cap));
   h = Math.max(1, Math.min(h, cap));
   return { width: w, height: h };
@@ -66,9 +84,15 @@ export function computeEyeRttSize(renderer, eyeCssWidth, eyeCssHeight, pixelRati
  * @param {number} width
  * @param {number} height
  */
-export function createEyeRenderTarget(renderer, width, height) {
+export function getEyeRttMsaaSamples(renderer) {
   const maxSamples = renderer.capabilities.maxSamples || 0;
-  const samples = maxSamples > 0 ? Math.min(4, maxSamples) : 0;
+  if (maxSamples <= 0) return 0;
+  const target = isMobileViewport() ? 2 : 4;
+  return Math.min(target, maxSamples);
+}
+
+export function createEyeRenderTarget(renderer, width, height) {
+  const samples = getEyeRttMsaaSamples(renderer);
   return new THREE.WebGLRenderTarget(width, height, {
     colorSpace: THREE.SRGBColorSpace,
     depthBuffer: true,
