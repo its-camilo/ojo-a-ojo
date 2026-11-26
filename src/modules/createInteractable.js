@@ -33,7 +33,7 @@ function drawLabelTexture(label) {
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.flipY = false;
+  tex.flipY = true;
   tex.anisotropy = 4;
   return tex;
 }
