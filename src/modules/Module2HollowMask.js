@@ -61,7 +61,7 @@ export class Module2HollowMask {
     const geo = buildHollowFaceGeometry();
     const mat = new THREE.MeshStandardMaterial({
       map: plasterMap,
-      color: 0xf2ebe4,
+      color: 0xe6dfd3,
       roughness: 0.55,
       metalness: 0.02,
       emissive: 0x6a645c,
