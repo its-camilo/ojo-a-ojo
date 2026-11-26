@@ -73,7 +73,6 @@ function addQuad(room, ax0, ay0, az0, ax1, ay1, az1, ax2, ay2, az2, ax3, ay3, az
 function buildShell(room) {
   const { halfW, floorY, ceilY, zNear, zFar } = AMES_ROOM;
   const matFloor = makeSurfaceMaterial(0);
-  const matWood = makeSurfaceMaterial(1);
   const matWall = makeSurfaceMaterial(2);
   const matCeil = makeSurfaceMaterial(3);
 
@@ -98,40 +97,16 @@ function buildShell(room) {
   addQuad(room, -halfW, floorY, zNear, -halfW, ceilY, zNear, -halfW, ceilY, zFar, -halfW, floorY, zFar, matWall);
   addQuad(room, halfW, floorY, zFar, halfW, ceilY, zFar, halfW, ceilY, zNear, halfW, floorY, zNear, matWall);
   addQuad(room, -halfW, floorY, zFar, halfW, floorY, zFar, halfW, ceilY, zFar, -halfW, ceilY, zFar, matWall);
-
-  const railY = floorY + AMES_ROOM.wainscotH;
-  const crownY = ceilY - 0.08;
-  const roomDepth = Math.abs(zFar - zNear) + 0.08;
-  room.add(
-    meshFromArchPrimitive(
-      new THREE.BoxGeometry(1, 1, 1),
-      archMatrixFromBox(0, floorY + 0.03, (zNear + zFar) * 0.5, AMES_ROOM.width + 0.06, 0.05, roomDepth),
-      matWood
-    )
-  );
-  room.add(
-    meshFromArchPrimitive(
-      new THREE.BoxGeometry(1, 1, 1),
-      archMatrixFromBox(0, railY, (zNear + zFar) * 0.5, AMES_ROOM.width, 0.05, roomDepth),
-      matWood
-    )
-  );
-  room.add(
-    meshFromArchPrimitive(
-      new THREE.BoxGeometry(1, 1, 1),
-      archMatrixFromBox(0, crownY, (zNear + zFar) * 0.5, AMES_ROOM.width, 0.07, roomDepth + 0.02),
-      matWood
-    )
-  );
 }
 
 function buildBackWallDetails(room) {
-  const { halfW, floorY, ceilY, zFar } = AMES_ROOM;
-  const z = zFar + 0.02;
+  const { floorY, zFar } = AMES_ROOM;
+  const zPane = zFar + 0.03;
+  const zFrame = zFar + 0.05;
   const matWood = makeSurfaceMaterial(1);
-  const matGlow = new THREE.MeshBasicMaterial({ color: 0xfff6e8 });
-  const matGlowPane = new THREE.MeshBasicMaterial({ color: 0xdceeff });
-  const matFrame = new THREE.MeshLambertMaterial({ color: 0xede4d8 });
+  const matGlow = new THREE.MeshBasicMaterial({ color: 0xfff6e8, side: THREE.DoubleSide });
+  const matGlowPane = new THREE.MeshBasicMaterial({ color: 0xdceeff, side: THREE.DoubleSide });
+  const matFrame = new THREE.MeshLambertMaterial({ color: 0xede4d8, side: THREE.DoubleSide });
 
   const windows = [
     { x: -0.95, y: floorY + 1.35, w: 0.72, h: 0.88 },
@@ -140,25 +115,25 @@ function buildBackWallDetails(room) {
 
   for (const win of windows) {
     const glowGeo = new THREE.PlaneGeometry(win.w * 0.88, win.h * 0.88);
-    const glow = meshFromArchPrimitive(glowGeo, archMatrixFromBox(win.x, win.y, z - 0.01, 1, 1, 1), matGlowPane);
+    const glow = meshFromArchPrimitive(glowGeo, archMatrixFromBox(win.x, win.y, zPane, 1, 1, 1), matGlowPane);
     const glowWarm = meshFromArchPrimitive(
-      new THREE.PlaneGeometry(win.w * 0.5, win.h * 0.5),
-      archMatrixFromBox(win.x + win.w * 0.12, win.y + win.h * 0.08, z - 0.008, 1, 1, 1),
+      new THREE.PlaneGeometry(win.w * 0.55, win.h * 0.55),
+      archMatrixFromBox(win.x + win.w * 0.1, win.y + win.h * 0.06, zPane + 0.005, 1, 1, 1),
       matGlow
     );
     const frame = meshFromArchPrimitive(
       new THREE.BoxGeometry(1, 1, 1),
-      archMatrixFromBox(win.x, win.y, z + 0.02, win.w, win.h, 0.06),
+      archMatrixFromBox(win.x, win.y, zFrame, win.w, win.h, 0.06),
       matWood
     );
     const mV = meshFromArchPrimitive(
       new THREE.BoxGeometry(1, 1, 1),
-      archMatrixFromBox(win.x, win.y, z + 0.03, 0.04, win.h * 0.9, 0.07),
+      archMatrixFromBox(win.x, win.y, zFrame + 0.02, 0.04, win.h * 0.9, 0.07),
       matFrame
     );
     const mH = meshFromArchPrimitive(
       new THREE.BoxGeometry(1, 1, 1),
-      archMatrixFromBox(win.x, win.y, z + 0.03, win.w * 0.9, 0.04, 0.07),
+      archMatrixFromBox(win.x, win.y, zFrame + 0.02, win.w * 0.9, 0.04, 0.07),
       matFrame
     );
     room.add(glow, glowWarm, frame, mV, mH);
@@ -167,11 +142,11 @@ function buildBackWallDetails(room) {
   const clockY = floorY + 1.55;
   const clockMatrix = new THREE.Matrix4()
     .makeRotationX(Math.PI / 2)
-    .setPosition(0, clockY, z + 0.04);
+    .setPosition(0, clockY, zFrame + 0.04);
   const clock = meshFromArchPrimitive(new THREE.CylinderGeometry(0.11, 0.11, 0.03, 32), clockMatrix, matFrame);
   const picture = meshFromArchPrimitive(
     new THREE.BoxGeometry(1, 1, 1),
-    archMatrixFromBox(0, floorY + 0.95, z + 0.03, 0.38, 0.48, 0.04),
+    archMatrixFromBox(0, floorY + 0.95, zFrame + 0.03, 0.38, 0.48, 0.04),
     matWood
   );
   room.add(clock, picture);
@@ -242,16 +217,15 @@ export function buildCollineatedRoom() {
   buildShell(room);
   buildBackWallDetails(room);
 
-  const nearArchX = -1.42;
-  const nearArchZ = -1.05;
-  const farArchX = 1.55;
-  const farArchZ = -4.85;
+  const archZ = -4.65;
+  const nearArchX = -1.45;
+  const farArchX = 1.45;
 
-  const figNear = buildArchFigure(nearArchX, nearArchZ, { skin: 0xe8b898, cloth: 0xc84a38, pants: 0x2c3e50 }, 0.38);
-  const figFar = buildArchFigure(farArchX, farArchZ, { skin: 0xd8a888, cloth: 0x3a68a0, pants: 0x3a3428 }, -0.32);
+  const figNear = buildArchFigure(nearArchX, archZ, { skin: 0xe8b898, cloth: 0xc84a38, pants: 0x2c3e50 }, 0.35);
+  const figFar = buildArchFigure(farArchX, archZ, { skin: 0xd8a888, cloth: 0x3a68a0, pants: 0x3a3428 }, -0.3);
   room.add(figNear, figFar);
 
-  room.add(shadowAtFoot(nearArchX, nearArchZ, 0.3), shadowAtFoot(farArchX, farArchZ, 0.22));
+  room.add(shadowAtFoot(nearArchX, archZ, 0.3), shadowAtFoot(farArchX, archZ, 0.22));
 
   const light = new THREE.PointLight(0xfff2e0, 2.4, 14);
   light.position.copy(collineateForward(new THREE.Vector3(0, AMES_ROOM.ceilY - 0.2, -2.2)));
@@ -264,8 +238,6 @@ export function buildCollineatedRoom() {
     new THREE.HemisphereLight(0xfff8f0, 0x8a7c68, 0.42)
   );
 
-  room.scale.setScalar(0.9);
-  room.position.set(0, 0.04, -0.12);
   syncRoomWorldUniforms(room);
   enableSharedStereoLayers(room);
   return room;
