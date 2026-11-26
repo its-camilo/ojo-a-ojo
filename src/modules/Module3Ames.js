@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
-import { enableSharedStereoLayers } from '../utils/stereoLayers.js';
+import { enableSharedStereoLayers } from '../rendering/stereoLayers.js';
 import { buildCollineatedRoom, syncRoomWorldUniforms } from './amesBuild.js';
+import { disposeObject3D } from '../rendering/sceneDispose.js';
 
 export class Module3Ames {
   constructor(stereo, monoRound, onComplete) {
@@ -70,6 +71,10 @@ export class Module3Ames {
 
   unmount() {
     this.stereo.removeFromScene(this.group);
+    disposeObject3D(this.group);
+    this.group = new THREE.Group();
+    this._room = null;
+    this.ui = null;
   }
 
   getInteractables() {

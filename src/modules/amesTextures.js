@@ -4,12 +4,13 @@ import {
   makeWainscotTexture,
   makeMarbleTexture,
   makeWoodTexture,
-} from '../utils/proceduralTextures.js';
+} from '../rendering/proceduralTextures.js';
+import { applyHighQualityTexture } from '../rendering/renderQuality.js';
 
 export { makeCheckerTexture, makeWoodTexture, makeMarbleTexture };
 
 export function makeWallTexture() {
-  const size = 512;
+  const size = 1024;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -41,6 +42,8 @@ export function makeWallTexture() {
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  applyHighQualityTexture(tex);
   return tex;
 }
 

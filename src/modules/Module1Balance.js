@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import balanceVert from '../shaders/dichoptic-balance.vert.glsl?raw';
 import balanceFrag from '../shaders/dichoptic-balance.frag.glsl?raw';
-import { injectColorOps, prepareGlslForThree } from '../utils/shaderBuild.js';
-import { Staircase1up1down } from '../utils/psychophysics.js';
-import { LAYER_LEFT, LAYER_RIGHT } from '../viewer/StereoRenderer.js';
+import { injectColorOps, prepareGlslForThree } from '../rendering/shaderBuild.js';
+import { Staircase1up1down } from '../domain/psychophysics.js';
+import { LAYER_LEFT, LAYER_RIGHT } from '../rendering/StereoRenderer.js';
 import { createButtonRow } from './uiLayout.js';
-import { installStudioEnvironment, addStudioLights } from '../utils/pbrEnvironment.js';
+import { installStudioEnvironment, addStudioLights } from '../rendering/pbrEnvironment.js';
+import { disposeObject3D } from '../rendering/sceneDispose.js';
 
 export class Module1Balance {
   constructor(stereo, onComplete) {
@@ -209,6 +210,8 @@ export class Module1Balance {
     this.materials.left.dispose();
     this.materials.right.dispose();
     this._envHandle?.dispose();
+    disposeObject3D(this.group);
+    this.group = new THREE.Group();
   }
 
   getInteractables() {

@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { LAYER_BOTH } from '../viewer/StereoRenderer.js';
+import { LAYER_BOTH } from './StereoRenderer.js';
+import { applyHighQualityTexture } from './renderQuality.js';
 
-const CANVAS_W = 768;
-const CANVAS_H = 200;
+const CANVAS_W = 1024;
+const CANVAS_H = 256;
 
 function drawLabelTexture(label) {
   const canvas = document.createElement('canvas');
@@ -36,7 +37,7 @@ function drawLabelTexture(label) {
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.flipY = true;
-  tex.anisotropy = 4;
+  applyHighQualityTexture(tex);
   return tex;
 }
 
@@ -65,7 +66,7 @@ export function createGazeButton(label, position, onSelect, options = {}) {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.copy(position);
   mesh.rotation.set(0, 0, 0);
-  mesh.renderOrder = 10;
+  mesh.renderOrder = 120;
   mesh.userData.gazeButton = true;
   mesh.userData.label = label;
   mesh.userData.onSelect = onSelect;

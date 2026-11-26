@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { createGazeButton } from './createInteractable.js';
+import { createGazeButton } from '../rendering/gazeButton.js';
 
-export const UI_ROW_Y = -0.88;
-export const UI_ROW_Z = -2.45;
+export const UI_ROW_Y = -1.05;
+export const UI_ROW_Z = -2.2;
 
 /**
  * Coloca botones de respuesta en fila debajo de la ilusión, mirando al observador.

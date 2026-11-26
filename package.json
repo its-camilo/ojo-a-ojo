@@ -1,7 +1,7 @@
 {
   "name": "ojo-a-ojo",
   "version": "1.0.0",
-  "description": "Tamizaje visual con ilusiones ópticas 3D para Google Cardboard — UNAL 2026-2",
+  "description": "Tamizaje visual con ilusiones ópticas 3D para Cardboard — UNAL 2026-2",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import rdsVert from '../shaders/rds-particles.vert.glsl?raw';
 import rdsFrag from '../shaders/rds-particles.frag.glsl?raw';
-import { injectColorOps, prepareGlslForThree } from '../utils/shaderBuild.js';
-import { disparityPxToArcsec } from '../utils/arcsec.js';
-import { LAYER_LEFT, LAYER_RIGHT } from '../viewer/StereoRenderer.js';
+import { injectColorOps, prepareGlslForThree } from '../rendering/shaderBuild.js';
+import { disparityPxToArcsec } from '../domain/arcsec.js';
+import { LAYER_LEFT, LAYER_RIGHT } from '../rendering/StereoRenderer.js';
 import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
-import { installStudioEnvironment, addStudioLights } from '../utils/pbrEnvironment.js';
+import { installStudioEnvironment, addStudioLights } from '../rendering/pbrEnvironment.js';
+import { disposeObject3D } from '../rendering/sceneDispose.js';
 
 export class Module4RDS {
   constructor(stereo, calibration, monoRound, onComplete) {
@@ -180,10 +181,12 @@ export class Module4RDS {
 
   unmount() {
     this.stereo.removeFromScene(this.group);
-    this.pointsLeft.material.dispose();
-    this.pointsRight.material.dispose();
-    this.pointsLeft.geometry.dispose();
     this._envHandle?.dispose();
+    disposeObject3D(this.group);
+    this.group = new THREE.Group();
+    this.pointsLeft = null;
+    this.pointsRight = null;
+    this.ui = null;
   }
 
   getInteractables() {

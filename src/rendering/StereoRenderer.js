@@ -1,7 +1,15 @@
 import * as THREE from 'three';
 import composeVert from '../shaders/stereo-compose.vert.glsl?raw';
 import composeFrag from '../shaders/stereo-compose.frag.glsl?raw';
-import { injectColorOps, prepareGlslForThree } from '../utils/shaderBuild.js';
+import { injectColorOps, prepareGlslForThree } from './shaderBuild.js';
+import {
+  bindRendererQuality,
+  computeSafePixelRatio,
+  computeEyeRttSize,
+  createEyeRenderTarget,
+  EYE_RTT_SUPERSAMPLE,
+  getGpuDimensionCap,
+} from './renderQuality.js';
 
 const LAYER_LEFT = 1;
 const LAYER_RIGHT = 2;
@@ -22,8 +30,8 @@ export class StereoRenderer {
 
     const aspect = this._eyeAspect();
     const fov = 75;
-    this.cameraLeft = new THREE.PerspectiveCamera(fov, aspect, 0.05, 200);
-    this.cameraRight = new THREE.PerspectiveCamera(fov, aspect, 0.05, 200);
+    this.cameraLeft = new THREE.PerspectiveCamera(fov, aspect, 0.15, 200);
+    this.cameraRight = new THREE.PerspectiveCamera(fov, aspect, 0.15, 200);
     this.cameraLeft.layers.enable(LAYER_LEFT);
     this.cameraLeft.layers.enable(LAYER_BOTH);
     this.cameraRight.layers.enable(LAYER_RIGHT);
@@ -39,15 +47,31 @@ export class StereoRenderer {
       powerPreference: 'high-performance',
     });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(container.clientWidth, container.clientHeight, false);
+    bindRendererQuality(this.renderer);
+
+    const cssW = container.clientWidth || window.innerWidth;
+    const cssH = container.clientHeight || window.innerHeight;
+    this.pixelRatio = computeSafePixelRatio(this.renderer, cssW, cssH);
+    this.renderer.setPixelRatio(this.pixelRatio);
+    this.renderer.setSize(cssW, cssH, false);
     this.renderer.domElement.classList.add('viewer-canvas');
     container.appendChild(this.renderer.domElement);
 
-    const w = Math.floor(container.clientWidth / 2);
-    const h = container.clientHeight;
-    this.rtLeft = new THREE.WebGLRenderTarget(w, h, { colorSpace: THREE.SRGBColorSpace });
-    this.rtRight = new THREE.WebGLRenderTarget(w, h, { colorSpace: THREE.SRGBColorSpace });
+    const gl = this.renderer.getContext();
+    this.gpuCap = getGpuDimensionCap(gl);
+    const eyeCssW = cssW / 2;
+    const { width: rtw, height: rth } = computeEyeRttSize(
+      this.renderer,
+      eyeCssW,
+      cssH,
+      this.pixelRatio
+    );
+    this.eyeRttWidth = rtw;
+    this.eyeRttHeight = rth;
+    this.msaaSamples = this._rttSamples();
+
+    this.rtLeft = createEyeRenderTarget(this.renderer, rtw, rth);
+    this.rtRight = createEyeRenderTarget(this.renderer, rtw, rth);
 
     const quadGeo = new THREE.PlaneGeometry(2, 2);
     this.composeMaterial = new THREE.RawShaderMaterial({
@@ -78,6 +102,25 @@ export class StereoRenderer {
     this._applyModeLayout();
   }
 
+  _rttSamples() {
+    const maxSamples = this.renderer.capabilities.maxSamples || 0;
+    return maxSamples > 0 ? Math.min(4, maxSamples) : 0;
+  }
+
+  /** Exposed for PR / diagnostics */
+  getQualityStats() {
+    return {
+      devicePixelRatio: window.devicePixelRatio || 1,
+      pixelRatio: this.pixelRatio,
+      eyeRttWidth: this.eyeRttWidth,
+      eyeRttHeight: this.eyeRttHeight,
+      rttSupersample: EYE_RTT_SUPERSAMPLE,
+      msaaSamples: this.msaaSamples,
+      maxAnisotropy: this.renderer.capabilities.getMaxAnisotropy(),
+      gpuDimensionCap: this.gpuCap,
+    };
+  }
+
   _eyeAspect() {
     const w = this.container.clientWidth || window.innerWidth;
     const h = this.container.clientHeight || window.innerHeight;
@@ -87,23 +130,40 @@ export class StereoRenderer {
   _createReticle() {
     const group = new THREE.Group();
     const depth = 0.85;
-    const ringGeo = new THREE.RingGeometry(0.009, 0.013, 32);
-    const dotGeo = new THREE.CircleGeometry(0.004, 16);
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0x7dd3fc,
+    const hud = {
       transparent: true,
-      opacity: 0.65,
       depthTest: false,
       depthWrite: false,
+    };
+    const guide = new THREE.Mesh(
+      new THREE.RingGeometry(0.015, 0.0175, 64),
+      new THREE.MeshBasicMaterial({ color: 0x7dd3fc, opacity: 0.4, ...hud })
+    );
+    const dot = new THREE.Mesh(
+      new THREE.CircleGeometry(0.0035, 32),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0.95, ...hud })
+    );
+    const progressMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      opacity: 0.92,
+      side: THREE.DoubleSide,
+      ...hud,
     });
-    const ring = new THREE.Mesh(ringGeo, mat);
-    const dot = new THREE.Mesh(dotGeo, mat.clone());
-    dot.material.opacity = 0.85;
-    ring.position.z = -depth;
-    dot.position.z = -depth;
-    group.add(ring, dot);
-    group.userData.reticleRing = ring;
-    group.renderOrder = 999;
+    for (const part of [guide, dot]) {
+      part.position.z = -depth;
+      part.renderOrder = 10000;
+      part.layers.enable(LAYER_BOTH);
+      group.add(part);
+    }
+    group.userData = {
+      reticleDepth: depth,
+      reticleDot: dot,
+      reticleGuide: guide,
+      reticleProgressMat: progressMat,
+      reticleProgressMesh: null,
+      reticleProgressStep: -1,
+    };
+    group.renderOrder = 10000;
     return group;
   }
 
@@ -157,19 +217,59 @@ export class StereoRenderer {
     this.scene.remove(object);
   }
 
-  setReticleProgress(t) {
-    const ring = this.reticle.userData.reticleRing;
-    if (ring) {
-      ring.scale.setScalar(1 + t * 0.12);
-      ring.material.opacity = 0.45 + t * 0.4;
+  setReticleProgress(t, targeting = false) {
+    const ud = this.reticle.userData;
+    const step = Math.floor(t * 40);
+    if (step !== ud.reticleProgressStep) {
+      ud.reticleProgressStep = step;
+      if (ud.reticleProgressMesh) {
+        this.reticle.remove(ud.reticleProgressMesh);
+        ud.reticleProgressMesh.geometry.dispose();
+        ud.reticleProgressMesh = null;
+      }
+      if (t > 0.02) {
+        const geo = new THREE.RingGeometry(
+          0.015,
+          0.0195,
+          64,
+          1,
+          -Math.PI / 2,
+          Math.max(0.02, t) * Math.PI * 2
+        );
+        const mesh = new THREE.Mesh(geo, ud.reticleProgressMat);
+        mesh.position.z = -ud.reticleDepth;
+        mesh.renderOrder = 10001;
+        mesh.layers.enable(LAYER_BOTH);
+        this.reticle.add(mesh);
+        ud.reticleProgressMesh = mesh;
+      }
+    }
+    if (ud.reticleDot) {
+      ud.reticleDot.material.opacity = targeting ? 1 : 0.92;
+      ud.reticleDot.scale.setScalar(1 + (targeting ? t * 0.12 : 0));
+    }
+    if (ud.reticleGuide) {
+      ud.reticleGuide.material.opacity = targeting ? 0.55 + t * 0.35 : 0.4;
     }
   }
 
-  render() {
-    const w = Math.floor(this.container.clientWidth / 2);
+  _syncRttSizes() {
+    const w = this.container.clientWidth;
     const h = this.container.clientHeight;
-    this.rtLeft.setSize(w, h);
-    this.rtRight.setSize(w, h);
+    if (!w || !h) return;
+
+    this.pixelRatio = computeSafePixelRatio(this.renderer, w, h);
+    this.renderer.setPixelRatio(this.pixelRatio);
+
+    const { width: rtw, height: rth } = computeEyeRttSize(this.renderer, w / 2, h, this.pixelRatio);
+    this.eyeRttWidth = rtw;
+    this.eyeRttHeight = rth;
+    this.rtLeft.setSize(rtw, rth);
+    this.rtRight.setSize(rtw, rth);
+  }
+
+  render() {
+    this._syncRttSizes();
 
     this.renderer.setRenderTarget(this.rtLeft);
     this.renderer.clear();
@@ -193,6 +293,8 @@ export class StereoRenderer {
     this.cameraRight.aspect = aspect;
     this.cameraLeft.updateProjectionMatrix();
     this.cameraRight.updateProjectionMatrix();
+    this.pixelRatio = computeSafePixelRatio(this.renderer, w, h);
+    this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.setSize(w, h, false);
   }
 

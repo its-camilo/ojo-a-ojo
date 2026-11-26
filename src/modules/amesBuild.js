@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import amesVert from '../shaders/ames-surface.vert.glsl?raw';
 import amesFrag from '../shaders/ames-surface.frag.glsl?raw';
-import { prepareGlslForThree } from '../utils/shaderBuild.js';
+import { prepareGlslForThree } from '../rendering/shaderBuild.js';
 import {
   AMES_EYE,
   AMES_W,
@@ -10,8 +10,8 @@ import {
   collineateForward,
   meshFromArchPrimitive,
   archMatrixFromBox,
-} from '../utils/amesCollineation.js';
-import { enableSharedStereoLayers } from '../utils/stereoLayers.js';
+} from './amesCollineation.js';
+import { enableSharedStereoLayers } from '../rendering/stereoLayers.js';
 
 function makeSurfaceMaterial(surfaceType) {
   return new THREE.RawShaderMaterial({
@@ -104,7 +104,6 @@ function buildBackWallDetails(room) {
   const zMullion = zFar + 0.08;
   const zPane = zFar + 0.11;
   const matWood = makeSurfaceMaterial(1);
-  const matGlow = new THREE.MeshBasicMaterial({ color: 0xfff9f0, side: THREE.DoubleSide });
   const matGlowPane = new THREE.MeshBasicMaterial({
     color: 0xe8f5ff,
     side: THREE.DoubleSide,
@@ -122,12 +121,6 @@ function buildBackWallDetails(room) {
     const glowGeo = new THREE.PlaneGeometry(win.w * 0.9, win.h * 0.9);
     const glow = meshFromArchPrimitive(glowGeo, archMatrixFromBox(win.x, win.y, zPane, 1, 1, 1), paneMat);
     glow.renderOrder = 3;
-    const glowWarm = meshFromArchPrimitive(
-      new THREE.PlaneGeometry(win.w * 0.55, win.h * 0.55),
-      archMatrixFromBox(win.x + win.w * 0.1, win.y + win.h * 0.06, zPane + 0.008, 1, 1, 1),
-      matGlow
-    );
-    glowWarm.renderOrder = 4;
     const trim = (dx, dy, dw, dh) =>
       meshFromArchPrimitive(
         new THREE.BoxGeometry(1, 1, 1),
@@ -151,7 +144,7 @@ function buildBackWallDetails(room) {
       archMatrixFromBox(win.x, win.y, zMullion, win.w * 0.88, 0.04, 0.06),
       matFrame
     );
-    room.add(glow, glowWarm, ...frames, mV, mH);
+    room.add(glow, ...frames, mV, mH);
   }
 
   const clockY = floorY + 1.55;
@@ -208,7 +201,7 @@ export function buildArchFigure(archX, archZ, palette, yaw = 0) {
   part(new THREE.CylinderGeometry(0.048, 0.044, 0.26, 12), 0.19, 0.78, 0.02, cloth);
 
   part(new THREE.CylinderGeometry(0.05, 0.055, 0.1, 14), 0, 1.38, 0.01, skin);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 22, 18), skin);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 28), skin);
   head.scale.set(1, 1.08, 0.95);
   head.position.set(0, 1.52, 0.02);
   fig.add(head);

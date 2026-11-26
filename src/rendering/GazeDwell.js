@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const DWELL_MS = 1500;
+export const GAZE_DWELL_MS = 3000;
 
 export class GazeDwellSystem {
   constructor(camera, scene, domElement) {
@@ -8,7 +8,7 @@ export class GazeDwellSystem {
     this.scene = scene;
     this.dom = domElement;
     this.raycaster = new THREE.Raycaster();
-    this.dwellMs = DWELL_MS;
+    this.dwellMs = GAZE_DWELL_MS;
     this.activeTarget = null;
     this.progress = 0;
     this._startTime = null;

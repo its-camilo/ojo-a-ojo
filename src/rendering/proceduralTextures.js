@@ -1,6 +1,9 @@
 import * as THREE from 'three';
+import { applyHighQualityTexture } from './renderQuality.js';
 
-function canvasTexture(drawFn, size = 512) {
+const PROCEDURAL_TEX_SIZE = 1024;
+
+function canvasTexture(drawFn, size = PROCEDURAL_TEX_SIZE) {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -9,6 +12,7 @@ function canvasTexture(drawFn, size = 512) {
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
+  applyHighQualityTexture(tex);
   return tex;
 }
 
@@ -37,7 +41,7 @@ export function makeWoodTexture() {
       ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.08})`;
       ctx.fillRect(Math.random() * size, Math.random() * size, 1, 2 + Math.random() * 3);
     }
-  }, 512);
+  });
 }
 
 export function makeMarbleTexture() {
@@ -62,7 +66,7 @@ export function makeMarbleTexture() {
       ctx.fillStyle = `rgba(180, 190, 200, ${Math.random() * 0.04})`;
       ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
     }
-  }, 512);
+  });
 }
 
 export function makePlasterTexture() {
@@ -78,22 +82,19 @@ export function makePlasterTexture() {
       ctx.arc(Math.random() * size, Math.random() * size, r, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, 512);
+  });
 }
 
-export function makeCheckerTexture(light = '#e2ddd4', dark = '#4a433c', tiles = 10) {
-  return canvasTexture(
-    (ctx, size) => {
-      const step = size / tiles;
-      for (let row = 0; row < tiles; row++) {
-        for (let col = 0; col < tiles; col++) {
-          ctx.fillStyle = (row + col) % 2 === 0 ? light : dark;
-          ctx.fillRect(col * step, row * step, step, step);
-        }
+export function makeCheckerTexture(light = '#e2ddd4', dark = '#4a433c', tiles = 12) {
+  return canvasTexture((ctx, size) => {
+    const step = size / tiles;
+    for (let row = 0; row < tiles; row++) {
+      for (let col = 0; col < tiles; col++) {
+        ctx.fillStyle = (row + col) % 2 === 0 ? light : dark;
+        ctx.fillRect(col * step, row * step, step + 0.5, step + 0.5);
       }
-    },
-    256
-  );
+    }
+  }, 1024);
 }
 
 export function makeWainscotTexture() {
@@ -111,7 +112,7 @@ export function makeWainscotTexture() {
     }
     ctx.fillStyle = '#9a8f84';
     ctx.fillRect(0, size - 28, size, 28);
-  }, 512);
+  });
 }
 
 export function makeRoughnessFromCanvas(baseTex, contrast = 0.35) {
@@ -130,5 +131,6 @@ export function makeRoughnessFromCanvas(baseTex, contrast = 0.35) {
   ctx.putImageData(data, 0, 0);
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  applyHighQualityTexture(tex);
   return tex;
 }
