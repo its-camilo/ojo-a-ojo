@@ -23,8 +23,17 @@ function makeSurfaceMaterial(surfaceType) {
       uEye: { value: AMES_EYE.clone() },
       uW: { value: AMES_W.clone() },
       uWainscotY: { value: AMES_ROOM.floorY + AMES_ROOM.wainscotH },
+      uRoomWorld: { value: new THREE.Matrix4() },
     },
     side: THREE.DoubleSide,
+  });
+}
+
+function syncRoomWorldUniforms(room) {
+  room.updateMatrixWorld(true);
+  room.traverse((obj) => {
+    const u = obj.material?.uniforms?.uRoomWorld;
+    if (u) u.value.copy(room.matrixWorld);
   });
 }
 
@@ -233,8 +242,8 @@ export function buildCollineatedRoom() {
   buildShell(room);
   buildBackWallDetails(room);
 
-  const nearArchX = -1.55;
-  const nearArchZ = -0.92;
+  const nearArchX = -1.42;
+  const nearArchZ = -1.05;
   const farArchX = 1.55;
   const farArchZ = -4.85;
 
@@ -257,6 +266,9 @@ export function buildCollineatedRoom() {
 
   room.scale.setScalar(0.9);
   room.position.set(0, 0.04, -0.12);
+  syncRoomWorldUniforms(room);
   enableSharedStereoLayers(room);
   return room;
 }
+
+export { syncRoomWorldUniforms };

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
 import { enableSharedStereoLayers } from '../utils/stereoLayers.js';
-import { buildCollineatedRoom } from './amesBuild.js';
+import { buildCollineatedRoom, syncRoomWorldUniforms } from './amesBuild.js';
 
 export class Module3Ames {
   constructor(stereo, monoRound, onComplete) {
@@ -15,8 +15,8 @@ export class Module3Ames {
   }
 
   _buildRoom() {
-    const room = buildCollineatedRoom();
-    this.group.add(room);
+    this._room = buildCollineatedRoom();
+    this.group.add(this._room);
 
     this.ui = new THREE.Group();
     this._buildPromptButtons();
@@ -65,6 +65,7 @@ export class Module3Ames {
     this.stereo.scene.environment = null;
     this.stereo.renderer.toneMappingExposure = 1.05;
     this.stereo.addToScene(this.group);
+    if (this._room) syncRoomWorldUniforms(this._room);
   }
 
   unmount() {
