@@ -93,6 +93,8 @@ export class ViewerSession {
       default:
         return;
     }
+    this.stereo.scene.environment = null;
+    this.stereo.renderer.toneMappingExposure = 0.92;
     this.activeModule.mount();
     if (this.controls instanceof DeviceOrientationController) {
       requestAnimationFrame(() => this.controls.recenter());

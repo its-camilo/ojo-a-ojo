@@ -57,6 +57,8 @@ export class Module2HollowMask {
     const mat = new THREE.MeshLambertMaterial({
       map: plasterMap,
       color: 0xcfc6b8,
+      emissive: 0x8a8078,
+      emissiveIntensity: 0.12,
       side: THREE.DoubleSide,
     });
     this.mask = new THREE.Mesh(geo, mat);
