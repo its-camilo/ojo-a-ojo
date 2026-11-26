@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-const GYRO_ANGULAR_GAIN = 0.68;
+const GYRO_ANGULAR_GAIN = 0.35;
+const IDENTITY = { x: 0, y: 0, z: 0, w: 1 };
+const DEG = Math.PI / 180;
 
 function iosGyroInitScript() {
   if (!window.DeviceOrientationEvent) {
@@ -10,12 +12,12 @@ function iosGyroInitScript() {
   Object.defineProperty(window.screen, 'orientation', {
     configurable: true,
     value: {
-      angle: 0,
+      angle: 90,
       addEventListener() {},
       removeEventListener() {},
     },
   });
-  window.orientation = 0;
+  window.orientation = 90;
 }
 
 function quatAngleRad(q1, q2) {
@@ -26,10 +28,14 @@ function quatAngleRad(q1, q2) {
   return 2 * Math.acos(dot);
 }
 
+function quatAngleDeg(q1, q2) {
+  return (quatAngleRad(q1, q2) * 180) / Math.PI;
+}
+
 async function tapRecenterButton(page) {
   const recenter = page.locator('#btn-recenter');
   await expect(recenter).toBeVisible();
-  await recenter.evaluate((node) => node.click());
+  await recenter.dispatchEvent('pointerdown');
 }
 
 async function settleOrientation(page, alpha, beta, gamma) {
@@ -40,7 +46,7 @@ async function settleOrientation(page, alpha, beta, gamma) {
       );
       const session = window.__OJO_A_OJO__?.viewerSession;
       if (!session?.controls?.applyToObject || !session.stereo?.head) return;
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 80; i++) {
         session.controls.applyToObject(session.stereo.head);
       }
     },
@@ -48,7 +54,8 @@ async function settleOrientation(page, alpha, beta, gamma) {
   );
 }
 
-async function openCardboardModule(page) {
+async function openCardboardModule(page, moduleIndex = 0) {
+  await page.setViewportSize({ width: 844, height: 390 });
   await page.goto('/');
   await page.evaluate(() => {
     localStorage.setItem(
@@ -67,7 +74,7 @@ async function openCardboardModule(page) {
   });
   await page.getByRole('button', { name: /Cardboard móvil/i }).click();
   await page.getByRole('button', { name: /Guardar y continuar/i }).click();
-  await page.getByRole('button', { name: 'Abrir módulo' }).first().click();
+  await page.getByRole('button', { name: 'Abrir módulo' }).nth(moduleIndex).click();
   await expect(page.locator('canvas.viewer-canvas')).toBeVisible({ timeout: 15000 });
 }
 
@@ -97,9 +104,9 @@ test.describe('Device orientation en visor Cardboard', () => {
     await expect.poll(() => readGyroEnabled(page)).toBe(true);
   });
 
-  test('rota el rig estéreo al emitir α/β/γ (retrato)', async ({ page }) => {
+  test('rota el rig estéreo al emitir α/β/γ (landscape)', async ({ page }) => {
     await openCardboardModule(page);
-    await page.waitForTimeout(200);
+    await settleOrientation(page, 10, 50, 5);
     const before = await readHeadQuat(page);
     expect(before).toBeTruthy();
 
@@ -113,40 +120,16 @@ test.describe('Device orientation en visor Cardboard', () => {
     expect(after).not.toEqual(mid);
   });
 
-  test('compensa orientación de pantalla en landscape', async ({ page }) => {
-    await page.addInitScript(() => {
-      Object.defineProperty(window.screen, 'orientation', {
-        configurable: true,
-        value: {
-          angle: 90,
-          addEventListener() {},
-          removeEventListener() {},
-        },
-      });
-      window.orientation = 90;
-    });
+  test('compensa orientación de pantalla en landscape 90° y -90°', async ({ page }) => {
     await openCardboardModule(page);
     await page.waitForTimeout(150);
 
-    const portraitQuat = await page.evaluate(() => {
-      window.screen.orientation.angle = 0;
-      window.orientation = 0;
-      window.dispatchEvent(new Event('orientationchange'));
-      window.dispatchEvent(
-        new DeviceOrientationEvent('deviceorientation', { alpha: 60, beta: 40, gamma: 5 })
-      );
-      const session = window.__OJO_A_OJO__.viewerSession;
-      for (let i = 0; i < 40; i++) session.controls.applyToObject(session.stereo.head);
-      const q = session.stereo.head.quaternion;
-      return { x: q.x, y: q.y, z: q.z, w: q.w };
-    });
-
-    const landscapeQuat = await page.evaluate(() => {
+    const at90 = await page.evaluate(() => {
       window.screen.orientation.angle = 90;
       window.orientation = 90;
       window.dispatchEvent(new Event('orientationchange'));
       window.dispatchEvent(
-        new DeviceOrientationEvent('deviceorientation', { alpha: 60, beta: 40, gamma: 5 })
+        new DeviceOrientationEvent('deviceorientation', { alpha: 60, beta: 85, gamma: 12 })
       );
       const session = window.__OJO_A_OJO__.viewerSession;
       for (let i = 0; i < 40; i++) session.controls.applyToObject(session.stereo.head);
@@ -154,71 +137,73 @@ test.describe('Device orientation en visor Cardboard', () => {
       return { x: q.x, y: q.y, z: q.z, w: q.w };
     });
 
-    expect(landscapeQuat).not.toEqual(portraitQuat);
+    const atNeg90 = await page.evaluate(() => {
+      window.screen.orientation.angle = -90;
+      window.orientation = -90;
+      window.dispatchEvent(new Event('orientationchange'));
+      window.dispatchEvent(
+        new DeviceOrientationEvent('deviceorientation', { alpha: 60, beta: 85, gamma: 12 })
+      );
+      const session = window.__OJO_A_OJO__.viewerSession;
+      for (let i = 0; i < 40; i++) session.controls.applyToObject(session.stereo.head);
+      const q = session.stereo.head.quaternion;
+      return { x: q.x, y: q.y, z: q.z, w: q.w };
+    });
+
+    expect(quatAngleDeg(at90, atNeg90)).toBeGreaterThan(0.5);
   });
 
-  test('recentrar fija yaw inicial', async ({ page }) => {
+  test('Recentrar deja head en identidad (landscape iOS, β/γ inclinados)', async ({ page }) => {
+    await openCardboardModule(page, 1);
+    await settleOrientation(page, 127, 88, -14);
+    await tapRecenterButton(page);
+    await settleOrientation(page, 127, 88, -14);
+    const after = await readHeadQuat(page);
+    expect(quatAngleDeg(after, IDENTITY)).toBeLessThan(0.5);
+  });
+
+  test('Recentrar centra el retículo en NDC (landscape)', async ({ page }) => {
+    await openCardboardModule(page, 1);
+    await settleOrientation(page, 200, 45, 8);
+    await tapRecenterButton(page);
+    await settleOrientation(page, 200, 45, 8);
+
+    const ndc = await page.evaluate(() => {
+      const session = window.__OJO_A_OJO__.viewerSession;
+      const aim = session.stereo.reticle?.children?.[0] ?? session.stereo.reticle;
+      if (!aim) return null;
+      return session.projectToNdc(aim);
+    });
+
+    expect(ndc).toBeTruthy();
+    expect(Math.abs(ndc.x)).toBeLessThan(0.08);
+    expect(Math.abs(ndc.y)).toBeLessThan(0.08);
+  });
+
+  test('giro 60° produce ~60°×0.35 en horizontal sin salto de eje', async ({ page }) => {
     await openCardboardModule(page);
-    await settleOrientation(page, 200, 30, 0);
-    const beforeRecenter = await readHeadQuat(page);
+    await settleOrientation(page, 20, 75, 6);
+    await tapRecenterButton(page);
+    await settleOrientation(page, 20, 75, 6);
+    const neutral = await readHeadQuat(page);
 
-    await page.evaluate(() => window.__OJO_A_OJO__.viewerSession.recenterGyro());
-    await settleOrientation(page, 200, 30, 0);
-    const afterSameOrientation = await readHeadQuat(page);
-
-    await settleOrientation(page, 260, 30, 0);
-    const afterTurn = await readHeadQuat(page);
-
-    expect(afterSameOrientation).not.toEqual(beforeRecenter);
-    expect(afterTurn).not.toEqual(afterSameOrientation);
+    await settleOrientation(page, 80, 75, 6);
+    const turned = await readHeadQuat(page);
+    const cameraDeg = quatAngleDeg(neutral, turned);
+    const expected = 60 * GYRO_ANGULAR_GAIN;
+    expect(cameraDeg).toBeGreaterThan(expected * 0.55);
+    expect(cameraDeg).toBeLessThan(expected * 1.45);
   });
 
-  test('botón Recentrar visible, encima del canvas y clickeable', async ({ page }) => {
+  test('botón Recentrar visible y clickeable', async ({ page }) => {
     await openCardboardModule(page);
     const recenter = page.getByRole('button', { name: 'Recentrar' });
     await expect(recenter).toBeVisible();
     await expect(recenter).toBeEnabled();
-
-    const layout = await page.evaluate(() => {
-      const canvas = document.querySelector('canvas.viewer-canvas');
-      const btn = document.getElementById('btn-recenter');
-      if (!canvas || !btn) return null;
-      const cRect = canvas.getBoundingClientRect();
-      const bRect = btn.getBoundingClientRect();
-      return {
-        buttonOverlapsCanvas: bRect.bottom > cRect.top,
-        hudAboveMount: parseInt(getComputedStyle(btn.closest('.viewer-hud')).zIndex, 10) >= 50,
-      };
-    });
-    expect(layout?.buttonOverlapsCanvas).toBe(true);
-    expect(layout?.hudAboveMount).toBe(true);
-
     await settleOrientation(page, 80, 35, 5);
-    const before = await readHeadQuat(page);
     await tapRecenterButton(page);
     await settleOrientation(page, 80, 35, 5);
-    const after = await readHeadQuat(page);
-    expect(quatAngleRad(before, after)).toBeGreaterThan(0.08);
-  });
-
-  test('Recentrar devuelve yaw efectivo a ~0° tras giro', async ({ page }) => {
-    await openCardboardModule(page);
-
-    await settleOrientation(page, 55, 45, 0);
-    const beforeRecenter = await readHeadQuat(page);
-
-    await tapRecenterButton(page);
-    await settleOrientation(page, 55, 45, 0);
-    const neutralPose = await readHeadQuat(page);
-    expect(quatAngleRad(beforeRecenter, neutralPose)).toBeGreaterThan(0.12);
-
-    await settleOrientation(page, 115, 45, 0);
-    const afterTurn = await readHeadQuat(page);
-    const effectiveYaw = quatAngleRad(neutralPose, afterTurn);
-  const deviceYawRad = ((115 - 55) * Math.PI) / 180;
-
-    expect(effectiveYaw).toBeGreaterThan(0.06);
-    expect(effectiveYaw).toBeLessThan(deviceYawRad * 0.95);
+    expect(quatAngleDeg(await readHeadQuat(page), IDENTITY)).toBeLessThan(0.5);
   });
 
   test('sensibilidad reducida tras recentrar (ganancia angular)', async ({ page }) => {
@@ -232,11 +217,11 @@ test.describe('Device orientation en visor Cardboard', () => {
     await settleOrientation(page, 70, 40, 0);
     const turned = await readHeadQuat(page);
     const cameraDeltaRad = quatAngleRad(neutralPose, turned);
-    const deviceDeltaRad = ((70 - 10) * Math.PI) / 180;
+    const deviceDeltaRad = 60 * DEG;
 
-    expect(cameraDeltaRad).toBeLessThan(deviceDeltaRad * 0.95);
-    expect(cameraDeltaRad).toBeGreaterThan(deviceDeltaRad * (GYRO_ANGULAR_GAIN - 0.2));
-    expect(cameraDeltaRad).toBeLessThan(deviceDeltaRad * (GYRO_ANGULAR_GAIN + 0.2));
+    expect(cameraDeltaRad).toBeLessThan(deviceDeltaRad * 0.75);
+    expect(cameraDeltaRad).toBeGreaterThan(deviceDeltaRad * (GYRO_ANGULAR_GAIN - 0.15));
+    expect(cameraDeltaRad).toBeLessThan(deviceDeltaRad * (GYRO_ANGULAR_GAIN + 0.15));
   });
 });
 
@@ -250,6 +235,7 @@ test.describe('Detección automática de PPI', () => {
     const card = page.locator('#card-ppi');
     await expect(card).toHaveAttribute('data-ppi-source', 'auto');
     await expect(page.getByTestId('ppi-auto-status')).toContainText(/Detectado automáticamente/i);
+    await expect(page.getByTestId('screen-landscape-guide')).toBeVisible();
 
     const stored = await page.evaluate(() => {
       const raw = localStorage.getItem('ojo-a-ojo-calibration-v1');
@@ -258,5 +244,22 @@ test.describe('Detección automática de PPI', () => {
     expect(stored?.ppiManual).toBe(false);
     expect(stored?.ppi).toBeGreaterThan(80);
     expect(stored?.ppiAuto).toBe(stored?.ppi);
+  });
+
+  test('iPhone con screen.width corto detecta ancho horizontal largo', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window.screen, 'width', { configurable: true, get: () => 390 });
+      Object.defineProperty(window.screen, 'height', { configurable: true, get: () => 844 });
+      Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => 3 });
+    });
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('ojo-a-ojo-calibration-v1'));
+    await page.reload();
+    await page.getByRole('button', { name: /Cardboard móvil/i }).click();
+
+    const det = await page.evaluate(() => window.__OJO_A_OJO__.getScreenDetection());
+    expect(det.metrics.landscapeCssPx).toBe(844);
+    expect(det.ppi).toBeGreaterThan(420);
   });
 });

@@ -1,21 +1,73 @@
+.screen--calibration {
+  max-width: min(100%, 960px);
+}
+
+.screen--calibration.screen--calibration-landscape {
+  max-width: 100%;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+}
+
 .card-visual {
   margin: 1rem auto;
   border: 2px dashed #38bdf8;
   border-radius: 8px;
   background: #0f172a;
   max-width: 100%;
+  aspect-ratio: 85.6 / 53.98;
+  height: auto;
+  box-sizing: border-box;
+}
+
+.screen-landscape-guide {
+  position: relative;
+  margin: 0.75rem auto 1rem;
+  border: 2px dashed #a78bfa;
+  border-radius: 6px;
+  background: rgba(30, 27, 75, 0.35);
+  min-height: 48px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.screen-landscape-guide__label {
+  font-size: 0.75rem;
+  color: #c4b5fd;
+  padding: 0.25rem 0.5rem 0.35rem;
+  text-align: center;
+  max-width: 100%;
 }
 
 .nonius-canvas-wrap {
-  overflow: auto;
+  overflow: hidden;
   border-radius: 8px;
-  border: 1px solid #334155;
+  border: 1px dashed #64748b;
+  width: 100%;
+  max-width: 100%;
+}
+
+.nonius-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .grid-preview {
   width: 100%;
-  max-width: 320px;
+  max-width: min(100%, 480px);
   display: block;
   margin-top: 0.75rem;
   border-radius: 8px;
+}
+
+@media (orientation: landscape) {
+  .screen--calibration .card-visual {
+    max-height: min(42dvh, 220px);
+  }
+
+  .screen-landscape-guide {
+    min-height: 40px;
+  }
 }

@@ -1,5 +1,7 @@
 /**
  * Detección automática de PPI físico (px/pulgada) a partir de resolución lógica, DPR y perfiles conocidos.
+ * Cardboard: siempre asume landscape — el ancho útil es el lado largo de la pantalla (iOS Safari
+ * mantiene screen.width en el lado corto aunque el teléfono esté horizontal).
  * pxPerMm = ppi / 25.4
  */
 
@@ -35,33 +37,48 @@ const DEVICE_PROFILES = [
 const LOGICAL_TOL = 4;
 const DPR_TOL = 0.35;
 
+/** Siempre landscape Cardboard: lado corto = min(screen), lado largo = max(screen, inner). */
 function readScreenMetrics() {
   if (typeof window === 'undefined') {
     return {
       logicalW: 390,
       logicalH: 844,
-      dpr: 1,
+      landscapeCssPx: 844,
+      landscapePhysPx: 844 * 3,
+      dpr: 3,
       innerW: 390,
       innerH: 844,
       screenW: 390,
       screenH: 844,
+      assumesLandscape: true,
     };
   }
 
   const dpr = window.devicePixelRatio || 1;
   const screenW = window.screen?.width ?? window.innerWidth;
   const screenH = window.screen?.height ?? window.innerHeight;
-  const logicalW = Math.min(screenW, screenH);
-  const logicalH = Math.max(screenW, screenH);
+
+  const shortSideCss = Math.min(screenW, screenH);
+  const longSideScreenCss = Math.max(screenW, screenH);
+  const innerLandscape = Math.max(window.innerWidth, window.innerHeight);
+  const innerPortrait = Math.min(window.innerWidth, window.innerHeight);
+  const landscapeCssPx = Math.max(longSideScreenCss, innerLandscape);
+  const logicalW = shortSideCss;
+  const logicalH = longSideScreenCss;
 
   return {
     logicalW,
     logicalH,
+    landscapeCssPx,
+    landscapePhysPx: landscapeCssPx * dpr,
     dpr,
     innerW: window.innerWidth,
     innerH: window.innerHeight,
+    innerLandscape,
+    innerPortrait,
     screenW,
     screenH,
+    assumesLandscape: true,
   };
 }
 
@@ -80,8 +97,7 @@ function matchProfile(metrics) {
 }
 
 function fallbackPpi(metrics) {
-  const { logicalW, dpr, innerW } = metrics;
-  const physW = logicalW * dpr;
+  const { logicalW, dpr } = metrics;
   const isCoarsePointer =
     typeof window !== 'undefined' &&
     window.matchMedia?.('(pointer: coarse)')?.matches === true;
@@ -94,11 +110,11 @@ function fallbackPpi(metrics) {
     return 400;
   }
 
-  const refCss = innerW > 0 ? innerW : logicalW;
-  if (refCss > 0 && physW > 0) {
-    const inferredInches = physW / (96 * dpr);
+  const physShort = logicalW * dpr;
+  if (physShort > 0) {
+    const inferredInches = physShort / 96;
     if (inferredInches > 2 && inferredInches < 20) {
-      const ppi = physW / inferredInches;
+      const ppi = physShort / inferredInches;
       return Math.max(96, Math.min(560, ppi));
     }
   }
@@ -107,24 +123,40 @@ function fallbackPpi(metrics) {
 }
 
 /**
- * @returns {{ ppi: number, pxPerMm: number, profileId: string|null, source: 'profile'|'fallback', metrics: object }}
+ * @returns {{
+ *   ppi: number,
+ *   pxPerMm: number,
+ *   landscapeWidthMm: number,
+ *   profileId: string|null,
+ *   source: 'profile'|'fallback',
+ *   metrics: object,
+ *   assumesLandscape: boolean,
+ * }}
  */
 export function detectScreenPpi() {
   const metrics = readScreenMetrics();
   const profile = matchProfile(metrics);
   const ppi = profile ? profile.ppi : fallbackPpi(metrics);
+  const pxPerMm = ppi / 25.4;
+  const landscapePhysPx = metrics.landscapePhysPx ?? metrics.landscapeCssPx * metrics.dpr;
+  const landscapeWidthMm = (landscapePhysPx / ppi) * 25.4;
+
   return {
     ppi: Math.round(ppi * 10) / 10,
-    pxPerMm: ppi / 25.4,
+    pxPerMm,
+    landscapeWidthMm: Math.round(landscapeWidthMm * 10) / 10,
     profileId: profile?.id ?? null,
     source: profile ? 'profile' : 'fallback',
     metrics,
+    assumesLandscape: true,
   };
 }
 
 export function formatAutoPpiLabel(detection) {
+  const mm = detection.landscapeWidthMm?.toFixed(1) ?? '—';
+  const landscapeNote = ` · ancho horizontal ~${mm} mm (Cardboard landscape)`;
   if (detection.profileId) {
-    return `Detectado automáticamente (${detection.ppi.toFixed(1)} PPI · ${detection.profileId.replace(/-/g, ' ')})`;
+    return `Detectado automáticamente (${detection.ppi.toFixed(1)} PPI · ${detection.profileId.replace(/-/g, ' ')}${landscapeNote})`;
   }
-  return `Detectado automáticamente (${detection.ppi.toFixed(1)} PPI · estimación ${detection.source})`;
+  return `Detectado automáticamente (${detection.ppi.toFixed(1)} PPI · estimación ${detection.source}${landscapeNote})`;
 }
