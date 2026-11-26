@@ -27,15 +27,17 @@ export class Module4RDS {
   _buildFrame() {
     this._envHandle = installStudioEnvironment(this.stereo.renderer, this.stereo.scene);
     this.stereo.scene.background = new THREE.Color(0x070b12);
-    addStudioLights(this.group, { keyInt: 1.2, fillInt: 0.4, ambient: 0.18 });
+    addStudioLights(this.group, { keyInt: 1.45, fillInt: 0.65, ambient: 0.28 });
 
     const housing = new THREE.Mesh(
       new THREE.BoxGeometry(2.4, 1.55, 0.22),
       new THREE.MeshPhysicalMaterial({
-        color: 0x1e2838,
-        metalness: 0.75,
-        roughness: 0.32,
-        clearcoat: 0.5,
+        color: 0x2a3a52,
+        emissive: 0x142030,
+        emissiveIntensity: 0.25,
+        metalness: 0.7,
+        roughness: 0.28,
+        clearcoat: 0.55,
       })
     );
     housing.position.set(0, 0.15, -2.72);
@@ -44,8 +46,14 @@ export class Module4RDS {
     this.group.add(housing);
 
     const bevel = new THREE.Mesh(
-      new THREE.TorusGeometry(0.92, 0.018, 8, 64),
-      new THREE.MeshStandardMaterial({ color: 0x8a9ab8, metalness: 0.9, roughness: 0.15 })
+      new THREE.TorusGeometry(0.92, 0.022, 10, 72),
+      new THREE.MeshStandardMaterial({
+        color: 0xc8e6ff,
+        emissive: 0x3d6a9e,
+        emissiveIntensity: 0.35,
+        metalness: 0.85,
+        roughness: 0.12,
+      })
     );
     bevel.position.set(0, 0.18, -2.58);
     bevel.layers.enable(LAYER_LEFT);
@@ -74,12 +82,14 @@ export class Module4RDS {
     const spread = 2;
     const halfDisp = (this.disparityPx / (this.calibration.ppi || 400)) * 0.012;
 
-    const seedGeo = new THREE.SphereGeometry(0.014, 8, 8);
+    const seedGeo = new THREE.SphereGeometry(0.016, 10, 10);
     const mat = new THREE.MeshPhysicalMaterial({
-      color: 0xc8d8f0,
-      metalness: 0.35,
-      roughness: 0.28,
-      clearcoat: 0.6,
+      color: 0xd6eeff,
+      emissive: 0x4a98e8,
+      emissiveIntensity: 0.72,
+      metalness: 0.1,
+      roughness: 0.14,
+      clearcoat: 0.5,
     });
 
     this.pointsLeft = new THREE.InstancedMesh(seedGeo, mat, count);
@@ -108,9 +118,9 @@ export class Module4RDS {
       this.pointsRight.setMatrixAt(i, dummy.matrix);
 
       if (inSquare) {
-        color.setHSL(0.58, 0.35, 0.55 + Math.random() * 0.15);
+        color.setHSL(0.56, 0.5, 0.76 + Math.random() * 0.1);
       } else {
-        color.setHSL(0.62, 0.15, 0.35 + Math.random() * 0.1);
+        color.setHSL(0.58, 0.35, 0.56 + Math.random() * 0.12);
       }
       this.pointsLeft.setColorAt(i, color);
       this.pointsRight.setColorAt(i, color);
@@ -121,6 +131,12 @@ export class Module4RDS {
     this.pointsRight.instanceColor.needsUpdate = true;
 
     this.group.add(this.pointsLeft, this.pointsRight);
+
+    const dotLight = new THREE.PointLight(0xd6eeff, 3.2, 9);
+    dotLight.position.set(0, 0.35, -2.55);
+    dotLight.layers.enable(LAYER_LEFT);
+    dotLight.layers.enable(LAYER_RIGHT);
+    this.group.add(dotLight);
   }
 
   _buildUI() {
@@ -158,6 +174,7 @@ export class Module4RDS {
   }
 
   mount() {
+    this.stereo.renderer.toneMappingExposure = 1.38;
     this.stereo.addToScene(this.group);
   }
 

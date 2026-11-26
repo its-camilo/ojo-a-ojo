@@ -17,61 +17,73 @@ export class Module2HollowMask {
   }
 
   _buildScene() {
-    this.stereo.scene.background = new THREE.Color(0x0a0e14);
-
     const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(1.6, 48),
-      new THREE.MeshStandardMaterial({ color: 0x161c24, roughness: 0.92, metalness: 0 })
+      new THREE.CircleGeometry(1.8, 64),
+      new THREE.MeshStandardMaterial({ color: 0xe8e4dc, roughness: 0.42, metalness: 0.05 })
     );
     floor.rotation.x = -Math.PI / 2;
-    floor.position.set(0, -0.95, -2.4);
+    floor.position.set(0, -0.92, -2.35);
     this.group.add(floor);
 
     const wall = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.2, 2),
-      new THREE.MeshStandardMaterial({ color: 0x1c242e, roughness: 0.95, side: THREE.DoubleSide })
+      new THREE.PlaneGeometry(3.6, 2.2),
+      new THREE.MeshStandardMaterial({ color: 0xd8dce6, roughness: 0.88, side: THREE.DoubleSide })
     );
-    wall.position.set(0, 0.15, -3.35);
+    wall.position.set(0, 0.12, -3.28);
     this.group.add(wall);
 
-    const key = new THREE.DirectionalLight(0xe8dcd0, 0.78);
-    key.position.set(0.35, 0.95, 0.15);
-    const rim = new THREE.DirectionalLight(0xb8a898, 0.38);
-    rim.position.set(1.5, 0.35, -1.05);
-    const fill = new THREE.DirectionalLight(0x98a8c0, 0.3);
-    fill.position.set(-1.3, 0.2, -0.35);
-    const lowFill = new THREE.PointLight(0xc8b0a0, 0.38, 8);
-    lowFill.position.set(0.12, -0.22, -1.55);
+    const niche = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.6, 1.85),
+      new THREE.MeshStandardMaterial({ color: 0xecedf2, roughness: 0.92 })
+    );
+    niche.position.set(0, 0.22, -3.24);
+    this.group.add(niche);
+
+    const key = new THREE.DirectionalLight(0xfff8f0, 1.05);
+    key.position.set(0.55, 0.85, 0.35);
+    const rim = new THREE.DirectionalLight(0xc8d0e0, 0.42);
+    rim.position.set(1.6, 0.55, -0.65);
+    const fill = new THREE.DirectionalLight(0xe8ecf4, 0.55);
+    fill.position.set(-1.2, 0.35, 0.15);
+    const lowFill = new THREE.PointLight(0xfff0e8, 0.72, 9);
+    lowFill.position.set(0.05, -0.18, -1.45);
     this.group.add(
       key,
       rim,
       fill,
       lowFill,
-      new THREE.AmbientLight(0xb0b8c8, 0.62),
-      new THREE.HemisphereLight(0xe8e0d4, 0x282c34, 0.48)
+      new THREE.AmbientLight(0xf0ece6, 0.55),
+      new THREE.HemisphereLight(0xf8f4ee, 0xc8c4bc, 0.42)
     );
 
     const plasterMap = makePlasterTexture();
     plasterMap.repeat.set(2, 2);
     const geo = buildHollowFaceGeometry();
-    const mat = new THREE.MeshLambertMaterial({
+    const mat = new THREE.MeshStandardMaterial({
       map: plasterMap,
-      color: 0xcfc6b8,
-      emissive: 0x8a8078,
-      emissiveIntensity: 0.12,
+      color: 0xf2ebe4,
+      roughness: 0.55,
+      metalness: 0.02,
+      emissive: 0x6a645c,
+      emissiveIntensity: 0.06,
       side: THREE.DoubleSide,
     });
     this.mask = new THREE.Mesh(geo, mat);
-    this.mask.position.set(0, 0.32, -2.42);
-    this.mask.rotation.x = -0.06;
+    this.mask.position.set(0, 0.34, -2.38);
+    this.mask.rotation.x = -0.05;
     this.group.add(this.mask);
 
     const plinth = new THREE.Mesh(
-      new THREE.BoxGeometry(0.35, 0.9, 0.35),
-      new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 0.65, metalness: 0.1 })
+      new THREE.CylinderGeometry(0.22, 0.28, 0.88, 32),
+      new THREE.MeshStandardMaterial({ color: 0xe0dcd4, roughness: 0.38, metalness: 0.08 })
     );
-    plinth.position.set(0, -0.5, -2.55);
-    this.group.add(plinth);
+    plinth.position.set(0, -0.48, -2.5);
+    const plinthCap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.3, 0.24, 0.06, 32),
+      new THREE.MeshStandardMaterial({ color: 0xd4d0c8, roughness: 0.3, metalness: 0.12 })
+    );
+    plinthCap.position.set(0, -0.02, -2.5);
+    this.group.add(plinth, plinthCap);
 
     this.ui = new THREE.Group();
     this._promptButtons();
@@ -121,8 +133,9 @@ export class Module2HollowMask {
   }
 
   mount() {
-    this.stereo.scene.background = new THREE.Color(0x0a0e14);
+    this.stereo.scene.background = new THREE.Color(0xc8ccd6);
     this.stereo.scene.environment = null;
+    this.stereo.renderer.toneMappingExposure = 1.14;
     this.stereo.addToScene(this.group);
   }
 
