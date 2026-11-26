@@ -10,11 +10,11 @@ uniform mat4 projectionMatrix;
 uniform mat4 modelViewMatrix;
 uniform mat3 normalMatrix;
 
-out vec3 vArch;
+out vec3 vWorldPos;
 out vec3 vNormal;
 
 void main() {
-  vArch = aArch;
+  vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
   vNormal = normalize(normalMatrix * normal);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }

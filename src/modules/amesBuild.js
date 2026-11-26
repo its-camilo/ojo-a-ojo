@@ -20,11 +20,29 @@ function makeSurfaceMaterial(surfaceType) {
     fragmentShader: prepareGlslForThree(amesFrag),
     uniforms: {
       surfaceType: { value: surfaceType },
-      uRoomFloorY: { value: new THREE.Vector3(0, AMES_ROOM.floorY, 0) },
+      uEye: { value: AMES_EYE.clone() },
+      uW: { value: AMES_W.clone() },
       uWainscotY: { value: AMES_ROOM.floorY + AMES_ROOM.wainscotH },
     },
     side: THREE.DoubleSide,
   });
+}
+
+/** Punto del piso en espacio físico (vértices ya colineados). */
+function floorWorldAt(archX, archZ) {
+  return collineateForward(new THREE.Vector3(archX, AMES_ROOM.floorY, archZ));
+}
+
+function shadowAtFoot(archX, archZ, radius) {
+  const p = floorWorldAt(archX, archZ);
+  const geo = new THREE.CircleGeometry(radius, 28);
+  geo.applyMatrix4(
+    new THREE.Matrix4().makeRotationX(-Math.PI / 2).setPosition(p.x, p.y + 0.005, p.z)
+  );
+  return new THREE.Mesh(
+    geo,
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.14 })
+  );
 }
 
 function archQuadQuad(ax0, ay0, az0, ax1, ay1, az1, ax2, ay2, az2, ax3, ay3, az3) {
@@ -102,7 +120,8 @@ function buildBackWallDetails(room) {
   const { halfW, floorY, ceilY, zFar } = AMES_ROOM;
   const z = zFar + 0.02;
   const matWood = makeSurfaceMaterial(1);
-  const matGlow = new THREE.MeshBasicMaterial({ color: 0xfff0d8 });
+  const matGlow = new THREE.MeshBasicMaterial({ color: 0xfff6e8 });
+  const matGlowPane = new THREE.MeshBasicMaterial({ color: 0xdceeff });
   const matFrame = new THREE.MeshLambertMaterial({ color: 0xede4d8 });
 
   const windows = [
@@ -112,7 +131,12 @@ function buildBackWallDetails(room) {
 
   for (const win of windows) {
     const glowGeo = new THREE.PlaneGeometry(win.w * 0.88, win.h * 0.88);
-    const glow = meshFromArchPrimitive(glowGeo, archMatrixFromBox(win.x, win.y, z - 0.01, 1, 1, 1), matGlow);
+    const glow = meshFromArchPrimitive(glowGeo, archMatrixFromBox(win.x, win.y, z - 0.01, 1, 1, 1), matGlowPane);
+    const glowWarm = meshFromArchPrimitive(
+      new THREE.PlaneGeometry(win.w * 0.5, win.h * 0.5),
+      archMatrixFromBox(win.x + win.w * 0.12, win.y + win.h * 0.08, z - 0.008, 1, 1, 1),
+      matGlow
+    );
     const frame = meshFromArchPrimitive(
       new THREE.BoxGeometry(1, 1, 1),
       archMatrixFromBox(win.x, win.y, z + 0.02, win.w, win.h, 0.06),
@@ -128,7 +152,7 @@ function buildBackWallDetails(room) {
       archMatrixFromBox(win.x, win.y, z + 0.03, win.w * 0.9, 0.04, 0.07),
       matFrame
     );
-    room.add(glow, frame, mV, mH);
+    room.add(glow, glowWarm, frame, mV, mH);
   }
 
   const clockY = floorY + 1.55;
@@ -209,22 +233,16 @@ export function buildCollineatedRoom() {
   buildShell(room);
   buildBackWallDetails(room);
 
-  const figNear = buildArchFigure(-1.35, -0.78, { skin: 0xe8b898, cloth: 0xc84a38, pants: 0x2c3e50 }, 0.38);
-  const figFar = buildArchFigure(1.28, -4.25, { skin: 0xd8a888, cloth: 0x3a68a0, pants: 0x3a3428 }, -0.32);
+  const nearArchX = -1.55;
+  const nearArchZ = -0.92;
+  const farArchX = 1.55;
+  const farArchZ = -4.85;
+
+  const figNear = buildArchFigure(nearArchX, nearArchZ, { skin: 0xe8b898, cloth: 0xc84a38, pants: 0x2c3e50 }, 0.38);
+  const figFar = buildArchFigure(farArchX, farArchZ, { skin: 0xd8a888, cloth: 0x3a68a0, pants: 0x3a3428 }, -0.32);
   room.add(figNear, figFar);
 
-  const floorShadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16 });
-  const shadowNear = meshFromArchPrimitive(
-    new THREE.CircleGeometry(0.28, 24),
-    new THREE.Matrix4().makeRotationX(-Math.PI / 2).setPosition(-1.75, AMES_ROOM.floorY + 0.01, -0.95),
-    floorShadowMat
-  );
-  const shadowFar = meshFromArchPrimitive(
-    new THREE.CircleGeometry(0.22, 24),
-    new THREE.Matrix4().makeRotationX(-Math.PI / 2).setPosition(1.65, AMES_ROOM.floorY + 0.01, -4.35),
-    floorShadowMat
-  );
-  room.add(shadowNear, shadowFar);
+  room.add(shadowAtFoot(nearArchX, nearArchZ, 0.3), shadowAtFoot(farArchX, farArchZ, 0.22));
 
   const light = new THREE.PointLight(0xfff2e0, 2.4, 14);
   light.position.copy(collineateForward(new THREE.Vector3(0, AMES_ROOM.ceilY - 0.2, -2.2)));
@@ -237,8 +255,8 @@ export function buildCollineatedRoom() {
     new THREE.HemisphereLight(0xfff8f0, 0x8a7c68, 0.42)
   );
 
-  room.scale.setScalar(0.88);
-  room.position.set(0, 0.06, -0.22);
+  room.scale.setScalar(0.9);
+  room.position.set(0, 0.04, -0.12);
   enableSharedStereoLayers(room);
   return room;
 }
