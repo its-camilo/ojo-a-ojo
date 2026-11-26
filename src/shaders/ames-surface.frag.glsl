@@ -26,8 +26,8 @@ vec3 floorChecker(vec2 xz) {
   float by = smoothstep(0.5 - fw.y * 0.65, 0.5 + fw.y * 0.65, f.y);
   float cell = mod(floor(c.x) + floor(c.y), 2.0);
   float ch = mix(cell, 1.0 - cell, bx * by + (1.0 - bx) * (1.0 - by) * 0.45);
-  vec3 light = vec3(0.925, 0.894, 0.835);
-  vec3 dark = vec3(0.173, 0.2, 0.239);
+  vec3 light = vec3(0.949, 0.925, 0.878);
+  vec3 dark = vec3(0.173, 0.216, 0.282);
   float vein = sin(xz.x * 8.0) * sin(xz.y * 7.0) * 0.02;
   vec3 base = mix(light, dark, ch);
   float joint = smoothstep(0.46, 0.5, abs(fract(c.x) - 0.5) / (fw.x + 0.001));
@@ -43,7 +43,7 @@ vec3 woodGrain(vec2 uv) {
 
 vec3 wallPaper(vec2 uv) {
   float stripe = 0.5 + 0.5 * sin(uv.y * 18.0);
-  return mix(vec3(0.95, 0.93, 0.9), vec3(0.9, 0.94, 0.88), stripe * 0.28);
+  return mix(vec3(0.961, 0.945, 0.910), vec3(0.92, 0.93, 0.88), stripe * 0.22);
 }
 
 void main() {
@@ -51,7 +51,7 @@ void main() {
   vec3 n = normalize(vNormal);
   vec3 lightDir = normalize(vec3(0.3, 1.0, 0.22));
   float ndl = clamp(dot(n, lightDir), 0.0, 1.0);
-  float shade = 0.4 + ndl * 0.58;
+  float shade = 0.48 + ndl * 0.54;
 
   float edgeX = 1.0 - min(abs(X.x) / 2.35, 1.0);
   float edgeZ = 1.0 - min(abs(X.z + 3.0) / 3.0, 1.0);
@@ -68,7 +68,7 @@ void main() {
     if (abs(X.y - uWainscotY) < 0.045) albedo = vec3(0.78, 0.72, 0.64);
     if (X.y > uWainscotY + 2.55) albedo = vec3(0.82, 0.78, 0.72);
   } else if (surfaceType == 3) {
-    albedo = vec3(0.922, 0.902, 0.863);
+    albedo = vec3(0.957, 0.941, 0.910);
   } else {
     albedo = vec3(0.92, 0.88, 0.72);
   }

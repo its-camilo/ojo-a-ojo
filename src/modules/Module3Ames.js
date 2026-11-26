@@ -63,7 +63,7 @@ export class Module3Ames {
   mount() {
     this.stereo.scene.background = new THREE.Color(0xd8d0c8);
     this.stereo.scene.environment = null;
-    this.stereo.renderer.toneMappingExposure = 1.05;
+    this.stereo.renderer.toneMappingExposure = 1.12;
     this.stereo.addToScene(this.group);
     if (this._room) syncRoomWorldUniforms(this._room);
   }
