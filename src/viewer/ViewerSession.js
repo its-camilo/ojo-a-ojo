@@ -9,6 +9,7 @@ import { Module4RDS } from '../modules/Module4RDS.js';
 import { recordModuleResult } from '../app/state.js';
 
 const MODULE_IDS = ['balance', 'hollow-mask', 'ames', 'rds'];
+const GYRO_SIGNAL_CHECK_MS = 1200;
 
 export class ViewerSession {
   constructor(container, options) {
@@ -22,13 +23,46 @@ export class ViewerSession {
     this.controls =
       options.mode === 'desktop'
         ? new DesktopControls(this.stereo.domElement)
-        : new DeviceOrientationController();
+        : new DeviceOrientationController(this.stereo.domElement);
     this.gaze = new GazeDwellSystem(this.stereo.camera, this.stereo.scene, this.stereo.domElement);
     this.gaze.setOnDwell((mesh) => {
       if (this.activeModule?.onGazeSelect) this.activeModule.onGazeSelect(mesh);
     });
     this._raf = null;
     this._last = performance.now();
+    this._gyroSignalTimer = null;
+    this.onGyroOverlayNeeded = options.onGyroOverlayNeeded ?? null;
+    this._gyroActivated = false;
+  }
+
+  /**
+   * Enlaza deviceorientation tras el gesto que abre el módulo (iOS) o de inmediato (Android).
+   * @param {{ permissionPromise?: Promise<string>|null, assumeGranted?: boolean }} gyroOpts
+   */
+  async activateGyro(gyroOpts = {}) {
+    if (this.options.mode === 'desktop') return true;
+    if (!(this.controls instanceof DeviceOrientationController)) return true;
+
+    const ok = await this.controls.activate(gyroOpts);
+    this._gyroActivated = ok;
+    if (ok) {
+      this.controls.recenter();
+      this._scheduleGyroSignalCheck();
+    } else {
+      this.onGyroOverlayNeeded?.('permission');
+    }
+    return ok;
+  }
+
+  _scheduleGyroSignalCheck() {
+    if (this._gyroSignalTimer) clearTimeout(this._gyroSignalTimer);
+    this._gyroSignalTimer = setTimeout(() => {
+      if (!(this.controls instanceof DeviceOrientationController)) return;
+      if (!this.controls.hasRecentSignal(GYRO_SIGNAL_CHECK_MS)) {
+        this.controls.enableTouchFallback();
+        this.onGyroOverlayNeeded?.('no-signal');
+      }
+    }, GYRO_SIGNAL_CHECK_MS);
   }
 
   startModule(moduleId, onModuleDone) {
@@ -60,10 +94,23 @@ export class ViewerSession {
         return;
     }
     this.activeModule.mount();
+    if (this.controls instanceof DeviceOrientationController) {
+      requestAnimationFrame(() => this.controls.recenter());
+    }
     this._loop();
   }
 
+  recenterGyro() {
+    if (this.controls instanceof DeviceOrientationController) {
+      this.controls.recenter();
+    }
+  }
+
   stopModule() {
+    if (this._gyroSignalTimer) {
+      clearTimeout(this._gyroSignalTimer);
+      this._gyroSignalTimer = null;
+    }
     if (this._raf) cancelAnimationFrame(this._raf);
     this._raf = null;
     if (this.activeModule) {
@@ -77,9 +124,7 @@ export class ViewerSession {
     const delta = now - this._last;
     this._last = now;
 
-    if (this.options.mode === 'desktop' && this.controls.applyToObject) {
-      this.controls.applyToObject(this.stereo.head);
-    } else if (this.controls.applyToObject) {
+    if (this.controls.applyToObject) {
       this.controls.applyToObject(this.stereo.head);
     }
 

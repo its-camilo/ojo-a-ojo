@@ -6,6 +6,9 @@ const CARD_H_MM = 53.98;
 
 export function renderCalibration(root, state, { onNavigate }) {
   const c = { ...state.calibration };
+  let gyroMonitor = null;
+  let gyroCtrl = null;
+
   root.innerHTML = `
     <main class="screen screen--calibration">
       <header>
@@ -52,7 +55,7 @@ export function renderCalibration(root, state, { onNavigate }) {
       <section class="card ios-block" id="ios-gyro" hidden>
         <h2>Giroscopio (iOS Safari)</h2>
         <button type="button" class="btn btn--primary" id="btn-gyro">Activar giroscopio</button>
-        <p id="gyro-status" class="hint"></p>
+        <p id="gyro-status" class="hint" aria-live="polite"></p>
       </section>
 
       <section class="card actions-row">
@@ -146,18 +149,43 @@ export function renderCalibration(root, state, { onNavigate }) {
   };
   drawGrid();
 
-  root.querySelector('#btn-gyro')?.addEventListener('click', async () => {
-    const ctrl = new DeviceOrientationController();
-    const ok = await ctrl.requestPermission();
-    root.querySelector('#gyro-status').textContent = ok
-      ? 'Giroscopio autorizado. Puede entrar al visor.'
-      : 'Permiso denegado. Use modo escritorio o reintente.';
-    if (ok) c.gyroEnabled = true;
-    ctrl.dispose();
+  const gyroStatus = root.querySelector('#gyro-status');
+  const stopGyroMonitor = () => {
+    if (gyroMonitor) {
+      clearInterval(gyroMonitor);
+      gyroMonitor = null;
+    }
+    gyroCtrl?.dispose();
+    gyroCtrl = null;
+  };
+
+  root.querySelector('#btn-gyro')?.addEventListener('click', () => {
+    stopGyroMonitor();
+    const permissionPromise = DeviceOrientationController.capturePermissionFromGesture();
+    gyroCtrl = new DeviceOrientationController();
+    void (async () => {
+      const ok = await gyroCtrl.activate({ permissionPromise });
+      if (ok) {
+        c.gyroEnabled = true;
+        gyroCtrl.recenter();
+        gyroMonitor = setInterval(() => {
+          const live = gyroCtrl.getLiveStatus();
+          gyroStatus.textContent = live.text;
+          gyroStatus.dataset.kind = live.kind;
+        }, 150);
+      } else {
+        gyroStatus.textContent = 'Permiso denegado';
+        gyroStatus.dataset.kind = 'denied';
+      }
+    })();
   });
 
-  root.querySelector('#btn-back').onclick = () => onNavigate('home');
+  root.querySelector('#btn-back').onclick = () => {
+    stopGyroMonitor();
+    onNavigate('home');
+  };
   root.querySelector('#btn-save-enter').onclick = () => {
+    stopGyroMonitor();
     saveCalibration(c);
     onNavigate('modules', { calibration: c, mode: state.mode || 'desktop' });
   };
