@@ -5,6 +5,12 @@ import {
   applyAutoScreenPpiIfNeeded,
 } from '../../utils/storage.js';
 import { detectScreenPpi, formatAutoPpiLabel } from '../../utils/screenDetection.js';
+import {
+  cardVisualSizePx,
+  getCalibrationViewport,
+  landscapeGuideWidthPx,
+  NONIUS_HEIGHT,
+} from '../../utils/calibrationLayout.js';
 import { DeviceOrientationController } from '../../viewer/DeviceOrientation.js';
 
 const CARD_W_MM = 85.6;
@@ -20,11 +26,15 @@ export function renderCalibration(root, state, { onNavigate }) {
     c.ppiProfileId = det.profileId;
   }
   const detection = detectScreenPpi();
+  const { isLandscape } = getCalibrationViewport();
+  const guideW = landscapeGuideWidthPx(detection);
+  const cardPx = cardVisualSizePx(c.ppi);
   let gyroMonitor = null;
   let gyroCtrl = null;
+  let layoutUnsub = null;
 
   root.innerHTML = `
-    <main class="screen screen--calibration">
+    <main class="screen screen--calibration screen--calibration-landscape" data-calib-orientation="${isLandscape ? 'landscape' : 'portrait'}">
       <header>
         <h1>Calibración en pantalla normal</h1>
         <p class="lead">Persistida en localStorage. Realice este paso <strong>antes</strong> de colocar el celular en el visor.</p>
@@ -38,8 +48,23 @@ export function renderCalibration(root, state, { onNavigate }) {
             ? `Ajuste manual activo (${c.ppi.toFixed(1)} PPI). Puede volver a la detección automática.`
             : formatAutoPpiLabel(detection)
         }</p>
-        <p class="hint">px/mm ≈ ${((c.ppi || detection.ppi) / 25.4).toFixed(3)} · Ajuste el rectángulo hasta que coincida con su tarjeta.</p>
-        <div class="card-visual" id="card-visual" style="width: ${(CARD_W_MM / 25.4) * c.ppi}px; height: ${(CARD_H_MM / 25.4) * c.ppi}px;"></div>
+        <p class="hint">px/mm ≈ ${((c.ppi || detection.ppi) / 25.4).toFixed(3)} · ancho horizontal (Cardboard): ~${(detection.landscapeWidthMm ?? 0).toFixed(1)} mm · Coloque el celular en <strong>horizontal</strong> para calibrar el visor.</p>
+        <div
+          class="screen-landscape-guide"
+          id="screen-landscape-guide"
+          data-testid="screen-landscape-guide"
+          style="width: ${guideW}px; max-width: 100%;"
+        >
+          <span class="screen-landscape-guide__label" id="screen-landscape-guide-label">
+            Detector: ancho horizontal ${guideW.toFixed(0)} px · ~${(detection.landscapeWidthMm ?? 0).toFixed(1)} mm
+          </span>
+        </div>
+        <div
+          class="card-visual"
+          id="card-visual"
+          data-testid="card-visual"
+          style="width: ${cardPx.width}px; height: ${cardPx.height}px;"
+        ></div>
         <label class="field">PPI estimado: <output id="ppi-out">${c.ppi.toFixed(1)}</output>
           <input type="range" id="ppi-slider" min="280" max="560" step="0.5" value="${c.ppi}" />
         </label>
@@ -57,9 +82,9 @@ export function renderCalibration(root, state, { onNavigate }) {
       </section>
 
       <section class="card" id="nonius-section">
-        <h2>Patrón Nonius (alineación dicóptica)</h2>
+        <h2>Patrón Nonius (alineación dicóptica · mitades izquierda/derecha en horizontal)</h2>
         <div class="nonius-canvas-wrap">
-          <canvas id="nonius-canvas" width="640" height="200" aria-label="Patrón Nonius"></canvas>
+          <canvas id="nonius-canvas" width="${Math.round(guideW)}" height="${NONIUS_HEIGHT}" aria-label="Patrón Nonius"></canvas>
         </div>
         <label class="field">Desplazamiento
           <input type="range" id="nonius-slider" min="-80" max="80" step="1" value="${c.noniusOffsetPx}" />
@@ -97,11 +122,65 @@ export function renderCalibration(root, state, { onNavigate }) {
   const ppiAutoStatus = root.querySelector('#ppi-auto-status');
   const ppiCard = root.querySelector('#card-ppi');
   const btnPpiAuto = root.querySelector('#btn-ppi-auto');
+  const screenGuide = root.querySelector('#screen-landscape-guide');
+  const screenGuideLabel = root.querySelector('#screen-landscape-guide-label');
+  const calibMain = root.querySelector('.screen--calibration');
+  const noniusCanvas = root.querySelector('#nonius-canvas');
+  const noniusSlider = root.querySelector('#nonius-slider');
+
+  const drawNonius = () => {
+    const w = noniusCanvas.width;
+    const h = noniusCanvas.height;
+    const ctx = noniusCanvas.getContext('2d');
+    ctx.fillStyle = '#0b1220';
+    ctx.fillRect(0, 0, w, h);
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 8);
+    ctx.lineTo(w / 2, h - 8);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = '#7dd3fc';
+    ctx.lineWidth = 2;
+    const leftX = w / 4;
+    const rightX = (3 * w) / 4;
+    const ox = w / 2 + c.noniusOffsetPx;
+    ctx.beginPath();
+    ctx.moveTo(leftX, h * 0.28);
+    ctx.lineTo(leftX, h * 0.72);
+    ctx.moveTo(rightX, h * 0.28);
+    ctx.lineTo(rightX, h * 0.72);
+    ctx.stroke();
+    ctx.strokeStyle = '#f472b6';
+    ctx.beginPath();
+    ctx.moveTo(ox - 40, h * 0.5);
+    ctx.lineTo(ox + 40, h * 0.5);
+    ctx.moveTo(ox, h * 0.32);
+    ctx.lineTo(ox, h * 0.68);
+    ctx.stroke();
+  };
+
+  const relayoutLandscapeGuides = () => {
+    const det = detectScreenPpi();
+    const guide = landscapeGuideWidthPx(det);
+    const card = cardVisualSizePx(c.ppi);
+    const { isLandscape: landscape } = getCalibrationViewport();
+
+    screenGuide.style.width = `${guide}px`;
+    screenGuideLabel.textContent = `Detector: ancho horizontal ${guide.toFixed(0)} px · ~${(det.landscapeWidthMm ?? 0).toFixed(1)} mm`;
+    cardVisual.style.width = `${card.width}px`;
+    cardVisual.style.height = `${card.height}px`;
+    noniusCanvas.width = Math.round(guide);
+    noniusCanvas.height = NONIUS_HEIGHT;
+    calibMain.dataset.calibOrientation = landscape ? 'landscape' : 'portrait';
+    drawNonius();
+  };
 
   const syncPpiVisual = () => {
     ppiOut.textContent = c.ppi.toFixed(1);
-    cardVisual.style.width = `${(CARD_W_MM / 25.4) * c.ppi}px`;
-    cardVisual.style.height = `${(CARD_H_MM / 25.4) * c.ppi}px`;
+    relayoutLandscapeGuides();
     ppiCard.dataset.ppiSource = c.ppiManual ? 'manual' : 'auto';
     ppiCard.dataset.ppiAuto = (c.ppiAuto ?? c.ppi).toFixed(1);
     if (c.ppiManual) {
@@ -111,6 +190,14 @@ export function renderCalibration(root, state, { onNavigate }) {
       ppiAutoStatus.textContent = formatAutoPpiLabel(detectScreenPpi());
       btnPpiAuto.hidden = true;
     }
+  };
+
+  const onLayoutChange = () => relayoutLandscapeGuides();
+  window.addEventListener('resize', onLayoutChange);
+  window.addEventListener('orientationchange', onLayoutChange);
+  layoutUnsub = () => {
+    window.removeEventListener('resize', onLayoutChange);
+    window.removeEventListener('orientationchange', onLayoutChange);
   };
 
   ppiSlider.oninput = () => {
@@ -133,29 +220,6 @@ export function renderCalibration(root, state, { onNavigate }) {
     ipdOut.textContent = c.ipdMm.toFixed(1);
   };
 
-  const noniusCanvas = root.querySelector('#nonius-canvas');
-  const noniusSlider = root.querySelector('#nonius-slider');
-  const drawNonius = () => {
-    const ctx = noniusCanvas.getContext('2d');
-    ctx.fillStyle = '#0b1220';
-    ctx.fillRect(0, 0, 640, 200);
-    ctx.strokeStyle = '#7dd3fc';
-    ctx.lineWidth = 2;
-    const ox = 320 + c.noniusOffsetPx;
-    ctx.beginPath();
-    ctx.moveTo(160, 60);
-    ctx.lineTo(160, 140);
-    ctx.moveTo(480, 60);
-    ctx.lineTo(480, 140);
-    ctx.stroke();
-    ctx.strokeStyle = '#f472b6';
-    ctx.beginPath();
-    ctx.moveTo(ox - 40, 100);
-    ctx.lineTo(ox + 40, 100);
-    ctx.moveTo(ox, 70);
-    ctx.lineTo(ox, 130);
-    ctx.stroke();
-  };
   noniusSlider.oninput = () => {
     c.noniusOffsetPx = parseInt(noniusSlider.value, 10);
     drawNonius();
@@ -227,12 +291,18 @@ export function renderCalibration(root, state, { onNavigate }) {
     })();
   });
 
-  root.querySelector('#btn-back').onclick = () => {
+  const leaveCalibration = () => {
     stopGyroMonitor();
+    layoutUnsub?.();
+    layoutUnsub = null;
+  };
+
+  root.querySelector('#btn-back').onclick = () => {
+    leaveCalibration();
     onNavigate('home');
   };
   root.querySelector('#btn-save-enter').onclick = () => {
-    stopGyroMonitor();
+    leaveCalibration();
     saveCalibration(c);
     onNavigate('modules', { calibration: c, mode: state.mode || 'desktop' });
   };

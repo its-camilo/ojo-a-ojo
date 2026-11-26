@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { StereoRenderer } from './StereoRenderer.js';
 import { GazeDwellSystem } from './GazeDwell.js';
 import { DesktopControls } from './DesktopControls.js';
@@ -139,6 +140,17 @@ export class ViewerSession {
   /** Cierra el módulo activo con respuestas de ensayo (E2E / verificación). */
   completeForE2e() {
     this.activeModule?.completeForE2e?.();
+  }
+
+  /** Proyección NDC del ojo izquierdo (E2E / verificación). */
+  projectToNdc(object3d) {
+    this.stereo.head.updateMatrixWorld(true);
+    object3d.updateMatrixWorld(true);
+    this.stereo.cameraLeft.updateMatrixWorld(true);
+    const v = new THREE.Vector3();
+    object3d.getWorldPosition(v);
+    v.project(this.stereo.cameraLeft);
+    return { x: v.x, y: v.y, z: v.z };
   }
 
   dispose() {

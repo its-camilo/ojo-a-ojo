@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import {
   deviceOrientationToQuaternion,
   getScreenOrientationRadians,
-  orientationWithGain,
   readOrientationRadians,
+  relativeOrientationQuaternion,
 } from './deviceOrientationMath.js';
 
 /** Permiso iOS concedido en esta pestaña (persiste tras el primer grant). */
@@ -11,7 +11,7 @@ let iosPermissionGrantedSession = false;
 
 const SIGNAL_TIMEOUT_MS = 1200;
 /** Slerp por frame hacia la orientación medida (reduce micro-temblores). */
-const GYRO_SLERP_ALPHA = 0.22;
+const GYRO_SLERP_ALPHA = 0.17;
 
 export class DeviceOrientationController {
   constructor(domElement) {
@@ -24,8 +24,10 @@ export class DeviceOrientationController {
       this._screenAngleRad = getScreenOrientationRadians();
     };
     this._screenAngleRad = getScreenOrientationRadians();
-    /** @type {{ alpha: number, beta: number, gamma: number }|null} */
-    this._baselineRad = null;
+    /** @type {THREE.Quaternion|null} */
+    this._qBaselineInv = null;
+    this._qDeviceAtBaseline = new THREE.Quaternion();
+    this._pendingRecenter = false;
     this._measurementQuat = new THREE.Quaternion();
     this._displayQuat = new THREE.Quaternion();
     this._snapDisplayQuat = true;
@@ -125,6 +127,18 @@ export class DeviceOrientationController {
     this._screenHandler();
   }
 
+  _captureBaselineFromRaw(raw) {
+    deviceOrientationToQuaternion(
+      raw.alpha,
+      raw.beta,
+      raw.gamma,
+      this._screenAngleRad,
+      this._qDeviceAtBaseline
+    );
+    this._qBaselineInv = this._qDeviceAtBaseline.clone().invert();
+    this._pendingRecenter = false;
+  }
+
   _onDeviceOrientation(e) {
     if (!this.enabled) return;
     if (e.alpha == null && e.beta == null && e.gamma == null) return;
@@ -135,34 +149,34 @@ export class DeviceOrientationController {
     this._lastGammaDeg = e.gamma;
     this._lastEventAt = performance.now();
 
-    const effective = orientationWithGain(raw, this._baselineRad);
-    deviceOrientationToQuaternion(
-      effective.alpha,
-      effective.beta,
-      effective.gamma,
-      this._screenAngleRad,
-      this._measurementQuat
-    );
+    if (this._pendingRecenter || this._qBaselineInv === null) {
+      this._captureBaselineFromRaw(raw);
+    }
+
+    relativeOrientationQuaternion(raw, this._qBaselineInv, this._screenAngleRad, this._measurementQuat);
     this.quaternion.copy(this._measurementQuat);
     this._touchFallback = false;
   }
 
   recenter() {
-    if (this._lastEventAt > 0 && this._lastAlphaDeg != null) {
-      this._baselineRad = readOrientationRadians({
-        alpha: this._lastAlphaDeg,
-        beta: this._lastBetaDeg ?? 0,
-        gamma: this._lastGammaDeg ?? 0,
-      });
-    } else {
-      this._baselineRad = { alpha: 0, beta: 0, gamma: 0 };
-    }
     this._dragYaw = 0;
     this._dragPitch = 0;
     this._displayQuat.identity();
     this._measurementQuat.identity();
     this.quaternion.identity();
     this._snapDisplayQuat = true;
+
+    if (this._lastEventAt > 0 && this._lastAlphaDeg != null) {
+      const raw = readOrientationRadians({
+        alpha: this._lastAlphaDeg,
+        beta: this._lastBetaDeg ?? 0,
+        gamma: this._lastGammaDeg ?? 0,
+      });
+      this._captureBaselineFromRaw(raw);
+    } else {
+      this._qBaselineInv = null;
+      this._pendingRecenter = true;
+    }
   }
 
   hasRecentSignal(maxAgeMs = SIGNAL_TIMEOUT_MS) {
