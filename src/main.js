@@ -1,5 +1,6 @@
 import { appState, setState, subscribe } from './app/state.js';
-import { loadCalibration } from './utils/storage.js';
+import { loadCalibration, applyAutoScreenPpiIfNeeded } from './utils/storage.js';
+import { detectScreenPpi } from './utils/screenDetection.js';
 import { renderHome } from './ui/screens/home.js';
 import { renderCalibration } from './ui/screens/calibration.js';
 import { renderModules } from './ui/screens/modules.js';
@@ -36,8 +37,25 @@ function render() {
 }
 
 subscribe(() => {});
+applyAutoScreenPpiIfNeeded();
 render();
 
 if (typeof window !== 'undefined') {
-  window.__OJO_A_OJO__ = { navigate, appState };
+  const refreshAutoPpi = () => {
+    const updated = applyAutoScreenPpiIfNeeded();
+    if (appState.screen === 'calibration') {
+      appState.calibration = updated;
+      render();
+    } else {
+      appState.calibration = loadCalibration();
+    }
+  };
+  window.addEventListener('orientationchange', refreshAutoPpi);
+  window.addEventListener('resize', refreshAutoPpi);
+
+  window.__OJO_A_OJO__ = {
+    navigate,
+    appState,
+    getScreenDetection: () => detectScreenPpi(),
+  };
 }

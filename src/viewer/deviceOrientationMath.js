@@ -6,6 +6,9 @@ const _screenTurn = new THREE.Quaternion();
 /** Rotación -π/2 en X: convención Three.js / DeviceOrientationControls */
 const _cameraUpFix = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
 
+/** Ganancia angular respecto al frente recentrado (1 = sin atenuación). */
+export const GYRO_ANGULAR_GAIN = 0.68;
+
 /**
  * Cuaternión de orientación del dispositivo (α, β, γ en rad) con compensación de pantalla.
  * @param {number} alpha
@@ -39,5 +42,19 @@ export function readOrientationRadians(e) {
     alpha: THREE.MathUtils.degToRad(e.alpha ?? 0),
     beta: THREE.MathUtils.degToRad(e.beta ?? 0),
     gamma: THREE.MathUtils.degToRad(e.gamma ?? 0),
+  };
+}
+
+/**
+ * Orientación efectiva tras recentrar: deltas escalados por GYRO_ANGULAR_GAIN.
+ * @param {{ alpha: number, beta: number, gamma: number }} raw rad
+ * @param {{ alpha: number, beta: number, gamma: number }|null} baseline rad en recentrado
+ */
+export function orientationWithGain(raw, baseline) {
+  if (!baseline) return raw;
+  return {
+    alpha: (raw.alpha - baseline.alpha) * GYRO_ANGULAR_GAIN,
+    beta: (raw.beta - baseline.beta) * GYRO_ANGULAR_GAIN,
+    gamma: (raw.gamma - baseline.gamma) * GYRO_ANGULAR_GAIN,
   };
 }
