@@ -1,0 +1,98 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  min-height: 100dvh;
+  background: #0b1220;
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+.app-shell {
+  min-height: 100dvh;
+}
+
+h1,
+h2 {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  font-size: 1.05rem;
+  color: #cbd5e1;
+  max-width: 52ch;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.disclaimer-inline {
+  color: #fca5a5;
+  font-size: 0.9rem;
+}
+
+.card {
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn--primary {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.btn--secondary {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: #93c5fd;
+  border: 1px solid #334155;
+}
+
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.field {
+  display: block;
+  margin: 0.5rem 0;
+}
+
+.field input[type='range'] {
+  width: 100%;
+  max-width: 420px;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}

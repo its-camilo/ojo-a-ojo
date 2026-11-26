@@ -1,0 +1,71 @@
+.viewer-shell {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  overflow: hidden;
+}
+
+.viewer-mount {
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+.viewer-canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.viewer-hud {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  pointer-events: none;
+}
+
+.viewer-hud .btn {
+  pointer-events: auto;
+}
+
+.reticle-hud {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  pointer-events: none;
+}
+
+.reticle-hud__ring {
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(125, 211, 252, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.viewer--landscape {
+  height: 100dvh;
+}
+
+@media (orientation: portrait) {
+  .viewer-shell.viewer--landscape-hint::before {
+    content: 'Gire el dispositivo a horizontal para Cardboard';
+    position: absolute;
+    z-index: 5;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(11, 18, 32, 0.92);
+    padding: 1rem;
+    text-align: center;
+  }
+}

@@ -1,0 +1,21 @@
+.card-visual {
+  margin: 1rem auto;
+  border: 2px dashed #38bdf8;
+  border-radius: 8px;
+  background: #0f172a;
+  max-width: 100%;
+}
+
+.nonius-canvas-wrap {
+  overflow: auto;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+.grid-preview {
+  width: 100%;
+  max-width: 320px;
+  display: block;
+  margin-top: 0.75rem;
+  border-radius: 8px;
+}
