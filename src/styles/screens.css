@@ -1,39 +1,85 @@
 .screen {
-  max-width: 720px;
+  max-width: 640px;
   margin: 0 auto;
-  padding: 1.25rem 1rem 2.5rem;
+  padding: 1.5rem 1.15rem 2.5rem;
 }
 
-.screen--home .hero h1 {
-  font-size: 2.2rem;
-  margin-bottom: 0.25rem;
+/* Hero óptico — punto focal de la landing */
+.home-hero {
+  margin-bottom: 1.75rem;
 }
 
-.screen--home .disclaimer {
-  border-color: #7f1d1d;
-  background: #1c1012;
+.optic-motif {
+  position: relative;
+  width: 120px;
+  height: 48px;
+  margin-bottom: 1.25rem;
 }
 
-.mode-grid {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: 1fr;
+.lens {
+  position: absolute;
+  top: 0;
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--lab-brass);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px rgba(77, 163, 224, 0.15);
 }
 
-@media (min-width: 540px) {
-  .mode-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+.lens--left {
+  left: 0;
+}
+
+.lens--right {
+  right: 0;
+}
+
+.lens-bridge {
+  position: absolute;
+  left: 50%;
+  top: 22px;
+  width: 28px;
+  height: 3px;
+  margin-left: -14px;
+  background: var(--lab-brass);
+  border-radius: 2px;
+}
+
+.home-start h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.35rem;
+}
+
+.home-nav {
+  margin-top: 0.5rem;
+}
+
+.screen--modules header h1 {
+  font-size: 1.55rem;
 }
 
 .module-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.module-card {
+  margin-bottom: 0;
 }
 
 .module-card h2 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  margin: 0 0 0.35rem;
+}
+
+.module-card p {
+  margin: 0 0 0.75rem;
+  color: var(--lab-muted);
+  font-size: 0.92rem;
 }
 
 .summary-table {
@@ -44,15 +90,22 @@
 
 .summary-table th,
 .summary-table td {
-  border: 1px solid #334155;
-  padding: 0.5rem;
+  border: 1px solid var(--lab-border);
+  padding: 0.55rem;
   vertical-align: top;
+  text-align: left;
+}
+
+.summary-table th {
+  background: var(--lab-surface-2);
+  font-weight: 600;
 }
 
 .metrics-cell {
-  font-size: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
   line-height: 1.45;
-  color: #cbd5e1;
+  color: #c5d5e8;
 }
 
 .cross-grid {
@@ -63,18 +116,30 @@
 
 .cross-cell {
   padding: 0.75rem;
-  border-radius: 8px;
-  text-align: center;
-  border: 1px solid #334155;
+  border-radius: 4px;
+  text-align: left;
+  border: 1px solid var(--lab-border);
+  background: var(--lab-surface-2);
+}
+
+.cross-cell span {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.cross-cell small {
+  color: var(--lab-muted);
+  font-size: 0.8rem;
 }
 
 .cross-cell--ok {
-  background: #052e16;
-  border-color: #166534;
+  border-color: #2d6b4a;
+  background: #0f1f18;
 }
 
 .cross-cell--pending {
-  background: #1e1b4b;
+  border-color: #3d4f6a;
 }
 
 .toolbar {
@@ -83,4 +148,48 @@
   gap: 0.75rem;
   align-items: center;
   margin-top: 0.75rem;
+}
+
+.toolbar label {
+  font-size: 0.9rem;
+  color: var(--lab-muted);
+}
+
+.toolbar select {
+  margin-left: 0.35rem;
+  background: var(--lab-surface-2);
+  color: var(--lab-text);
+  border: 1px solid var(--lab-border);
+  border-radius: 4px;
+  padding: 0.35rem;
+}
+
+@media (max-width: 480px) {
+  .cross-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .screen {
+    padding-top: 0.85rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .optic-motif {
+    width: 88px;
+    height: 36px;
+    margin-bottom: 0.75rem;
+  }
+
+  .lens {
+    width: 36px;
+    height: 36px;
+  }
+
+  .lens-bridge {
+    top: 16px;
+    width: 20px;
+    margin-left: -10px;
+  }
 }

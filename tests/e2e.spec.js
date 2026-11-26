@@ -3,12 +3,27 @@ import fs from 'fs';
 import path from 'path';
 
 const SCREENSHOT_DIR = '/opt/cursor/artifacts/playwright-screenshots';
+const ARTIFACTS = '/opt/cursor/artifacts';
 
 test.beforeAll(() => {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
+  fs.mkdirSync(ARTIFACTS, { recursive: true });
 });
 
-test('Ojo a Ojo v1 — flujo escritorio sin errores WebGL', async ({ page }) => {
+async function startCardboardFlow(page) {
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.removeItem('ojo-a-ojo-results-v1');
+    localStorage.removeItem('ojo-a-ojo-calibration-v1');
+  });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /Ojo a Ojo/i })).toBeVisible();
+  await page.getByRole('button', { name: /Comenzar con Cardboard/i }).click();
+  await page.getByRole('button', { name: /Guardar y continuar/i }).click();
+  await expect(page.getByRole('heading', { name: /Pruebas 3D/i })).toBeVisible();
+}
+
+test('Ojo a Ojo — flujo Cardboard completo sin errores WebGL', async ({ page }) => {
   const consoleErrors = [];
   const pageErrors = [];
   page.on('console', (msg) => {
@@ -16,19 +31,7 @@ test('Ojo a Ojo v1 — flujo escritorio sin errores WebGL', async ({ page }) => 
   });
   page.on('pageerror', (err) => pageErrors.push(String(err)));
 
-  await page.goto('/');
-  await page.evaluate(() => {
-    localStorage.removeItem('ojo-a-ojo-results-v1');
-    localStorage.removeItem('ojo-a-ojo-calibration-v1');
-  });
-  await page.reload();
-
-  await expect(page.getByRole('heading', { name: /Ojo a Ojo/i })).toBeVisible();
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, '01-home.png'), fullPage: true });
-
-  await page.getByRole('button', { name: /Modo escritorio/i }).click();
-  await page.getByRole('button', { name: /Guardar y continuar/i }).click();
-  await expect(page.getByRole('heading', { name: /Pruebas 3D/i })).toBeVisible();
+  await startCardboardFlow(page);
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '02-calibration-modules.png'), fullPage: true });
 
   const moduleShots = [
@@ -42,7 +45,7 @@ test('Ojo a Ojo v1 — flujo escritorio sin errores WebGL', async ({ page }) => 
     await page.getByRole('button', { name: 'Abrir módulo' }).nth(i).click();
     const canvas = page.locator('canvas.viewer-canvas');
     await expect(canvas).toBeVisible({ timeout: 15000 });
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, moduleShots[i]), fullPage: true });
     await page.evaluate(() => window.__OJO_A_OJO__?.viewerSession?.completeForE2e());
     await expect(page.getByRole('heading', { name: /Pruebas 3D/i })).toBeVisible({ timeout: 15000 });
@@ -81,4 +84,43 @@ test('Ojo a Ojo v1 — flujo escritorio sin errores WebGL', async ({ page }) => 
     (t) => !t.includes('Fullscreen') && !t.includes('requestFullscreen')
   );
   expect(severe, `Errores de consola/página: ${severe.join('\n')}`).toHaveLength(0);
+});
+
+test('Capturas de entrega en artifacts', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.removeItem('ojo-a-ojo-results-v1');
+    localStorage.removeItem('ojo-a-ojo-calibration-v1');
+  });
+  await page.reload();
+  await page.screenshot({ path: path.join(ARTIFACTS, 'landing-desktop.png'), fullPage: true });
+
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.reload();
+  await page.screenshot({ path: path.join(ARTIFACTS, 'landing-mobile-landscape.png'), fullPage: true });
+
+  await page.getByRole('button', { name: /Comenzar con Cardboard/i }).click();
+  await page.screenshot({ path: path.join(ARTIFACTS, 'calibration-landscape.png'), fullPage: true });
+  await page.getByRole('button', { name: /Guardar y continuar/i }).click();
+
+  const sceneNames = [
+    ['scene-dichoptic.png', 0],
+    ['scene-hollow-mask.png', 1],
+    ['scene-ames-room.png', 2],
+    ['scene-rds.png', 3],
+  ];
+
+  for (const [file, index] of sceneNames) {
+    await page.getByRole('button', { name: 'Abrir módulo' }).nth(index).click();
+    await expect(page.locator('canvas.viewer-canvas')).toBeVisible({ timeout: 15000 });
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: path.join(ARTIFACTS, file), fullPage: true });
+    await page.evaluate(() => window.__OJO_A_OJO__?.viewerSession?.completeForE2e());
+    await expect(page.getByRole('heading', { name: /Pruebas 3D/i })).toBeVisible({ timeout: 15000 });
+  }
+
+  await page.getByRole('button', { name: /Finalizar y ver resumen/i }).click();
+  await expect(page.getByRole('heading', { name: /Resumen de tamizaje/i })).toBeVisible();
+  await page.screenshot({ path: path.join(ARTIFACTS, 'summary.png'), fullPage: true });
 });

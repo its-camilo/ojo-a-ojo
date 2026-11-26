@@ -4,7 +4,7 @@ const listeners = new Set();
 
 export const appState = {
   screen: 'home',
-  mode: 'desktop',
+  mode: 'cardboard',
   calibration: loadCalibration(),
   viewMode: 0,
   monoRound: false,

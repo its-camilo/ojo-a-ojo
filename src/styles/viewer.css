@@ -34,10 +34,6 @@
   pointer-events: auto;
 }
 
-.viewer-hud .disclaimer-inline {
-  pointer-events: none;
-}
-
 .btn--sm {
   font-size: 0.8rem;
   padding: 0.35rem 0.6rem;

@@ -5,6 +5,7 @@ import { injectColorOps, prepareGlslForThree } from '../utils/shaderBuild.js';
 import { Staircase1up1down } from '../utils/psychophysics.js';
 import { LAYER_LEFT, LAYER_RIGHT } from '../viewer/StereoRenderer.js';
 import { createButtonRow } from './uiLayout.js';
+import { installStudioEnvironment, addStudioLights } from '../utils/pbrEnvironment.js';
 
 export class Module1Balance {
   constructor(stereo, onComplete) {
@@ -14,8 +15,17 @@ export class Module1Balance {
     this.staircase = new Staircase1up1down({ start: 0.5, step: 0.05 });
     this.leftContrast = 0.5;
     this.rightContrast = 0.5;
+    this._envHandle = null;
+    this._buildEnvironment();
     this._buildScene();
     this._buildUI();
+  }
+
+  _buildEnvironment() {
+    this._envHandle = installStudioEnvironment(this.stereo.renderer, this.stereo.scene);
+    this.stereo.scene.background = new THREE.Color(0x060a12);
+    addStudioLights(this.group, { keyInt: 1.8, ambient: 0.15 });
+    this.group.add(new THREE.HemisphereLight(0x8eb4ff, 0x0a0e16, 0.35));
   }
 
   _buildScene() {
@@ -27,30 +37,103 @@ export class Module1Balance {
         contrastLeftLin: { value: 1 },
         contrastRightLin: { value: 1 },
         eyePass: { value: 1 },
-        baseColor: { value: new THREE.Color(0x4f8cff) },
+        baseColor: { value: new THREE.Color(0x5a9fff) },
       },
     });
     const matRight = matLeft.clone();
     matRight.uniforms.eyePass.value = 2;
 
-    const torusL = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.12, 24, 48), matLeft);
+    const pedestal = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.55, 0.62, 0.12, 48),
+      new THREE.MeshPhysicalMaterial({
+        color: 0x1a2438,
+        metalness: 0.65,
+        roughness: 0.28,
+        clearcoat: 0.4,
+      })
+    );
+    pedestal.position.set(0, -0.72, -2.35);
+    pedestal.receiveShadow = true;
+    pedestal.layers.set(LAYER_LEFT);
+    pedestal.layers.enable(LAYER_RIGHT);
+    this.group.add(pedestal);
+
+    const arch = new THREE.Mesh(
+      new THREE.TorusGeometry(0.95, 0.025, 8, 64, Math.PI),
+      new THREE.MeshStandardMaterial({ color: 0x2a3d5c, metalness: 0.7, roughness: 0.35 })
+    );
+    arch.rotation.x = Math.PI / 2;
+    arch.position.set(0, 0.05, -2.55);
+    arch.layers.enable(LAYER_LEFT);
+    arch.layers.enable(LAYER_RIGHT);
+    this.group.add(arch);
+
+    const lensBody = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.38, 0.42, 0.18, 64),
+      new THREE.MeshPhysicalMaterial({
+        color: 0x242e42,
+        metalness: 0.85,
+        roughness: 0.18,
+        clearcoat: 1,
+      })
+    );
+    lensBody.rotation.x = Math.PI / 2;
+    lensBody.position.set(0, 0.12, -2.38);
+    lensBody.layers.enable(LAYER_LEFT);
+    lensBody.layers.enable(LAYER_RIGHT);
+    this.group.add(lensBody);
+
+    for (let i = 0; i < 5; i++) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.22 + i * 0.09, 0.012, 16, 80),
+        new THREE.MeshStandardMaterial({
+          color: 0xb8c8e0,
+          metalness: 0.95,
+          roughness: 0.12,
+        })
+      );
+      ring.position.set(0, 0.12, -2.38);
+      ring.layers.enable(LAYER_LEFT);
+      ring.layers.enable(LAYER_RIGHT);
+      this.group.add(ring);
+    }
+
+    const torusL = new THREE.Mesh(new THREE.TorusKnotGeometry(0.28, 0.07, 64, 12), matLeft);
     torusL.layers.set(LAYER_LEFT);
-    torusL.position.set(-0.35, 0.15, -2);
+    torusL.position.set(-0.28, 0.22, -2.32);
+    torusL.castShadow = true;
 
-    const boxR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), matRight);
-    boxR.layers.set(LAYER_RIGHT);
-    boxR.position.set(0.35, -0.15, -2.2);
+    const prismR = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), matRight);
+    prismR.layers.set(LAYER_RIGHT);
+    prismR.position.set(0.3, -0.02, -2.28);
+    prismR.castShadow = true;
 
-    const rodL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 16), matLeft);
+    const rodL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 20), matLeft);
     rodL.layers.set(LAYER_LEFT);
-    rodL.position.set(-0.5, -0.5, -1.6);
+    rodL.position.set(-0.42, -0.35, -2.05);
+    rodL.rotation.z = 0.25;
 
-    const sphereR = new THREE.Mesh(new THREE.SphereGeometry(0.28, 32, 16), matRight);
+    const sphereR = new THREE.Mesh(new THREE.SphereGeometry(0.22, 32, 20), matRight);
     sphereR.layers.set(LAYER_RIGHT);
-    sphereR.position.set(0.55, 0.45, -1.8);
+    sphereR.position.set(0.48, 0.38, -2.12);
+
+    const dust = new THREE.Points(
+      new THREE.BufferGeometry().setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(
+          Array.from({ length: 200 * 3 }, () => (Math.random() - 0.5) * 3.5),
+          3
+        )
+      ),
+      new THREE.PointsMaterial({ color: 0x5a7ab0, size: 0.012, opacity: 0.35, transparent: true })
+    );
+    dust.position.set(0, 0, -2.2);
+    dust.layers.enable(LAYER_LEFT);
+    dust.layers.enable(LAYER_RIGHT);
+    this.group.add(dust);
 
     this.materials = { left: matLeft, right: matRight };
-    this.group.add(torusL, boxR, rodL, sphereR);
+    this.group.add(torusL, prismR, rodL, sphereR);
     this._syncContrasts();
   }
 
@@ -75,7 +158,7 @@ export class Module1Balance {
 
   _trial(reportRight) {
     const est = this.staircase.record(reportRight);
-  if (est.done) this._finish();
+    if (est.done) this._finish();
     this.leftContrast = est.imbalanceRatio;
     this.rightContrast = 1.0;
     this._syncContrasts();
@@ -91,7 +174,7 @@ export class Module1Balance {
       reversals: est.reversals,
       trials: est.trials,
       interpretation:
-        'Indicio exploratorio de desequilibrio interocular en contraste (estilo Martín et al., 2020). IR≈1 sugiere equilibrio relativo; valores alejados de 1 merecen consulta profesional. No es diagnóstico.',
+        'Indicio exploratorio de desequilibrio interocular en contraste (estilo Martín et al., 2020). IR≈1 sugiere equilibrio relativo; valores alejados de 1 merecen consulta profesional.',
     });
   }
 
@@ -103,6 +186,7 @@ export class Module1Balance {
     this.stereo.removeFromScene(this.group);
     this.materials.left.dispose();
     this.materials.right.dispose();
+    this._envHandle?.dispose();
   }
 
   getInteractables() {
@@ -113,7 +197,6 @@ export class Module1Balance {
     mesh.userData.onSelect?.();
   }
 
-  /** Completa ensayos mínimos (Playwright / verificación automatizada). */
   completeForE2e() {
     this._trial(false);
     this._trial(true);

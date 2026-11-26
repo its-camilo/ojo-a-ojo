@@ -1,24 +1,12 @@
 import * as THREE from 'three';
+import {
+  makeCheckerTexture,
+  makeWainscotTexture,
+  makeMarbleTexture,
+  makeWoodTexture,
+} from '../utils/proceduralTextures.js';
 
-export function makeCheckerTexture(light = '#e8e4dc', dark = '#4a4540', tiles = 10) {
-  const size = 256;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const step = size / tiles;
-  for (let row = 0; row < tiles; row++) {
-    for (let col = 0; col < tiles; col++) {
-      ctx.fillStyle = (row + col) % 2 === 0 ? light : dark;
-      ctx.fillRect(col * step, row * step, step, step);
-    }
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(4, 4);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
+export { makeCheckerTexture, makeWoodTexture, makeMarbleTexture };
 
 export function makeWallTexture() {
   const size = 512;
@@ -26,31 +14,50 @@ export function makeWallTexture() {
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#c9bdb0';
-  ctx.fillRect(0, 0, size, size);
-  const winW = size * 0.22;
-  const winH = size * 0.35;
-  const gap = size * 0.08;
-  let x = gap;
+  const wainscot = makeWainscotTexture();
+  const marble = makeMarbleTexture();
+  ctx.drawImage(wainscot.image, 0, 0, size, size * 0.55);
+  ctx.globalAlpha = 0.45;
+  ctx.drawImage(marble.image, 0, size * 0.12, size, size * 0.88);
+  ctx.globalAlpha = 1;
+
+  const winW = size * 0.2;
+  const winH = size * 0.32;
+  let x = size * 0.06;
   for (let k = 0; k < 3; k++) {
-    ctx.fillStyle = '#87b6d9';
-    trapezoidWindow(ctx, x, size * 0.28, winW, winH, 0.12);
-    x += winW + gap;
+    drawTrapezoidWindow(ctx, x, size * 0.26, winW, winH, 0.14);
+    x += winW + size * 0.06;
   }
+
+  ctx.fillStyle = '#6b4f38';
+  ctx.fillRect(size * 0.68, size * 0.22, size * 0.22, size * 0.28);
+  ctx.strokeStyle = '#3d2a1e';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(size * 0.68, size * 0.22, size * 0.22, size * 0.28);
+  ctx.fillStyle = '#c9a227';
+  ctx.beginPath();
+  ctx.arc(size * 0.79, size * 0.36, size * 0.07, 0, Math.PI * 2);
+  ctx.fill();
+
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
-function trapezoidWindow(ctx, x, y, w, h, skew) {
+function drawTrapezoidWindow(ctx, x, y, w, h, skew) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(180, 215, 245, 0.55)';
   ctx.beginPath();
-  ctx.moveTo(x + w * skew, y);
-  ctx.lineTo(x + w * (1 - skew), y);
-  ctx.lineTo(x + w, y + h);
-  ctx.lineTo(x, y + h);
+  ctx.moveTo(x + w * skew + 10, y + 10);
+  ctx.lineTo(x + w * (1 - skew) - 10, y + 10);
+  ctx.lineTo(x + w - 10, y + h - 10);
+  ctx.lineTo(x + 10, y + h - 10);
   ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = '#f8fafc';
-  ctx.lineWidth = 6;
+  ctx.strokeStyle = '#f0ebe4';
+  ctx.lineWidth = 8;
   ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.fillRect(x + w * 0.35, y + 14, w * 0.12, h - 28);
+  ctx.restore();
 }

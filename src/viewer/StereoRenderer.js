@@ -12,7 +12,7 @@ export class StereoRenderer {
     this.container = container;
     this.calibration = calibration;
     this.viewMode = options.viewMode ?? 0;
-    this.mode = options.mode ?? 'desktop';
+    this.mode = options.mode ?? 'cardboard';
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0a0f18);

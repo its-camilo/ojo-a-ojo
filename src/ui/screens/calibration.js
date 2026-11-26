@@ -38,7 +38,6 @@ export function renderCalibration(root, state, { onNavigate }) {
       <header>
         <h1>Calibración en pantalla normal</h1>
         <p class="lead">Persistida en localStorage. Realice este paso <strong>antes</strong> de colocar el celular en el visor.</p>
-        <p class="disclaimer-inline">Prototipo de tamizaje — no diagnóstico clínico.</p>
       </header>
 
       <section class="card" id="card-ppi" data-ppi-source="${c.ppiManual ? 'manual' : 'auto'}" data-ppi-auto="${(c.ppiAuto ?? detection.ppi).toFixed(1)}">
@@ -304,6 +303,6 @@ export function renderCalibration(root, state, { onNavigate }) {
   root.querySelector('#btn-save-enter').onclick = () => {
     leaveCalibration();
     saveCalibration(c);
-    onNavigate('modules', { calibration: c, mode: state.mode || 'desktop' });
+    onNavigate('modules', { calibration: c, mode: state.mode || 'cardboard' });
   };
 }

@@ -6,6 +6,7 @@ import { disparityPxToArcsec } from '../utils/arcsec.js';
 import { LAYER_LEFT, LAYER_RIGHT } from '../viewer/StereoRenderer.js';
 import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
+import { installStudioEnvironment, addStudioLights } from '../utils/pbrEnvironment.js';
 
 export class Module4RDS {
   constructor(stereo, calibration, monoRound, onComplete) {
@@ -16,22 +17,69 @@ export class Module4RDS {
     this.group = new THREE.Group();
     this.disparityPx = 6;
     this.phase = 'mono';
+    this._envHandle = null;
+    this._buildFrame();
     this._buildPointCloud();
     this._buildUI();
     this.stereo.setMono(this.phase === 'mono');
   }
 
+  _buildFrame() {
+    this._envHandle = installStudioEnvironment(this.stereo.renderer, this.stereo.scene);
+    this.stereo.scene.background = new THREE.Color(0x070b12);
+    addStudioLights(this.group, { keyInt: 1.2, fillInt: 0.4, ambient: 0.18 });
+
+    const housing = new THREE.Mesh(
+      new THREE.BoxGeometry(2.4, 1.55, 0.22),
+      new THREE.MeshPhysicalMaterial({
+        color: 0x1e2838,
+        metalness: 0.75,
+        roughness: 0.32,
+        clearcoat: 0.5,
+      })
+    );
+    housing.position.set(0, 0.15, -2.72);
+    housing.layers.enable(LAYER_LEFT);
+    housing.layers.enable(LAYER_RIGHT);
+    this.group.add(housing);
+
+    const bevel = new THREE.Mesh(
+      new THREE.TorusGeometry(0.92, 0.018, 8, 64),
+      new THREE.MeshStandardMaterial({ color: 0x8a9ab8, metalness: 0.9, roughness: 0.15 })
+    );
+    bevel.position.set(0, 0.18, -2.58);
+    bevel.layers.enable(LAYER_LEFT);
+    bevel.layers.enable(LAYER_RIGHT);
+    this.group.add(bevel);
+
+    const glass = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.75, 1.15),
+      new THREE.MeshPhysicalMaterial({
+        color: 0xaac0e0,
+        transparent: true,
+        opacity: 0.12,
+        metalness: 0,
+        roughness: 0.05,
+        transmission: 0.85,
+      })
+    );
+    glass.position.set(0, 0.2, -2.59);
+    glass.layers.enable(LAYER_LEFT);
+    glass.layers.enable(LAYER_RIGHT);
+    this.group.add(glass);
+  }
+
   _buildPointCloud() {
-    const count = 2400;
-    const spread = 2.2;
+    const count = 2800;
+    const spread = 2;
     const halfDisp = (this.disparityPx / (this.calibration.ppi || 400)) * 0.012;
 
-    const seedGeo = new THREE.SphereGeometry(0.018, 6, 6);
-    const mat = new THREE.RawShaderMaterial({
-      glslVersion: THREE.GLSL3,
-      defines: { USE_INSTANCING: '' },
-      vertexShader: prepareGlslForThree(rdsVert),
-      fragmentShader: injectColorOps(rdsFrag),
+    const seedGeo = new THREE.SphereGeometry(0.014, 8, 8);
+    const mat = new THREE.MeshPhysicalMaterial({
+      color: 0xc8d8f0,
+      metalness: 0.35,
+      roughness: 0.28,
+      clearcoat: 0.6,
     });
 
     this.pointsLeft = new THREE.InstancedMesh(seedGeo, mat, count);
@@ -40,24 +88,37 @@ export class Module4RDS {
     this.pointsRight.layers.set(LAYER_RIGHT);
 
     const dummy = new THREE.Object3D();
+  const color = new THREE.Color();
     for (let i = 0; i < count; i++) {
       const x = (Math.random() - 0.5) * spread;
-      const ly = (Math.random() - 0.5) * spread * 0.55;
-      const y = ly + 0.35;
-      const z = (Math.random() - 0.5) * 0.35 - 2.55;
-      const inSquare = Math.abs(x) < 0.35 && Math.abs(ly) < 0.35;
+      const ly = (Math.random() - 0.5) * spread * 0.5;
+      const y = ly + 0.25;
+      const z = (Math.random() - 0.5) * 0.28 - 2.62;
+      const inSquare = Math.abs(x) < 0.38 && Math.abs(ly) < 0.38;
       const disp = inSquare ? halfDisp : 0;
+      const scale = inSquare ? 1.15 + Math.random() * 0.15 : 0.75 + Math.random() * 0.2;
 
       dummy.position.set(x - disp, y, z);
+      dummy.scale.setScalar(scale);
       dummy.updateMatrix();
       this.pointsLeft.setMatrixAt(i, dummy.matrix);
 
       dummy.position.set(x + disp, y, z);
       dummy.updateMatrix();
       this.pointsRight.setMatrixAt(i, dummy.matrix);
+
+      if (inSquare) {
+        color.setHSL(0.58, 0.35, 0.55 + Math.random() * 0.15);
+      } else {
+        color.setHSL(0.62, 0.15, 0.35 + Math.random() * 0.1);
+      }
+      this.pointsLeft.setColorAt(i, color);
+      this.pointsRight.setColorAt(i, color);
     }
     this.pointsLeft.instanceMatrix.needsUpdate = true;
     this.pointsRight.instanceMatrix.needsUpdate = true;
+    this.pointsLeft.instanceColor.needsUpdate = true;
+    this.pointsRight.instanceColor.needsUpdate = true;
 
     this.group.add(this.pointsLeft, this.pointsRight);
   }
@@ -92,7 +153,7 @@ export class Module4RDS {
       monoDepth: this.monoAnswer ?? depth,
       stereoDepth: depth,
       interpretation:
-        `Tamizaje de estereopsis global gruesa (Julesz, 1960; Bonfanti et al., 2015: ~124–157 arcsec/px en móviles). No mide estereoagudeza clínica fina. Si no percibe figura solo en estéreo, indício de limitación binocular; consultar profesional.`,
+        `Tamizaje de estereopsis global gruesa (Julesz, 1960; Bonfanti et al., 2015). No mide estereoagudeza clínica fina. Si no percibe figura solo en estéreo, puede haber limitación binocular.`,
     });
   }
 
@@ -105,6 +166,7 @@ export class Module4RDS {
     this.pointsLeft.material.dispose();
     this.pointsRight.material.dispose();
     this.pointsLeft.geometry.dispose();
+    this._envHandle?.dispose();
   }
 
   getInteractables() {

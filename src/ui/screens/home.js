@@ -1,44 +1,41 @@
 export function renderHome(root, { onNavigate }) {
   root.innerHTML = `
     <main class="screen screen--home">
-      <header class="hero">
-        <p class="eyebrow">UNAL Bogotá · Computación Visual 2026-2 · Proyecto 3</p>
+      <header class="home-hero">
+        <div class="optic-motif" aria-hidden="true">
+          <span class="lens lens--left"></span>
+          <span class="lens lens--right"></span>
+          <span class="lens-bridge"></span>
+        </div>
         <h1>Ojo a Ojo</h1>
         <p class="lead">
-          Prototipo académico de <strong>tamizaje visual</strong> con ilusiones ópticas en 3D
-          para celular en visor Google Cardboard básico. <em>No es diagnóstico clínico.</em>
+          Visor estereoscópico en el celular con Google Cardboard: cuatro ilusiones 3D para explorar
+          balance, profundidad y fusión binocular con precisión de laboratorio visual.
         </p>
       </header>
-      <section class="card disclaimer" role="note">
-        <h2>Aviso ético</h2>
-        <p>
-          Este software es un primer filtro exploratorio. No sustituye examen optométrico u oftalmológico,
-          agudeza visual, cover test ni pruebas clínicas validadas.
-        </p>
+
+      <section class="card home-start">
+        <h2>Preparar el visor</h2>
+        <p>Calibra pantalla e IPD en horizontal, luego ejecuta los cuatro módulos en secuencia o por separado.</p>
+        <button type="button" class="btn btn--primary btn--wide" id="btn-cardboard">
+          Comenzar con Cardboard
+        </button>
+        <p class="hint">En iPhone Safari, active el giroscopio con un toque durante la calibración o al abrir un módulo.</p>
       </section>
-      <section class="card">
-        <h2>Modo de uso</h2>
-        <div class="mode-grid">
-          <button type="button" class="btn btn--primary" data-mode="cardboard" id="btn-cardboard">
-            Cardboard móvil
-          </button>
-          <button type="button" class="btn btn--secondary" data-mode="desktop" id="btn-desktop">
-            Modo escritorio / defensa
-          </button>
-        </div>
-        <p class="hint">En iPhone Safari use «Activar giroscopio» en calibración tras un toque explícito.</p>
-      </section>
-      <section class="card actions-row">
+
+      <nav class="home-nav actions-row">
         <button type="button" class="btn btn--ghost" id="btn-calib">Calibración</button>
-        <button type="button" class="btn btn--ghost" id="btn-tests">Ir a pruebas</button>
-        <button type="button" class="btn btn--ghost" id="btn-summary">Ver resumen previo</button>
-      </section>
+        <button type="button" class="btn btn--ghost" id="btn-tests">Módulos 3D</button>
+        <button type="button" class="btn btn--ghost" id="btn-summary">Resumen de sesión</button>
+      </nav>
     </main>
   `;
 
-  root.querySelector('#btn-cardboard').onclick = () => onNavigate('calibration', { mode: 'cardboard' });
-  root.querySelector('#btn-desktop').onclick = () => onNavigate('calibration', { mode: 'desktop' });
-  root.querySelector('#btn-calib').onclick = () => onNavigate('calibration', { mode: 'desktop' });
-  root.querySelector('#btn-tests').onclick = () => onNavigate('modules', { mode: 'desktop' });
+  const goCardboard = (screen, extra = {}) =>
+    onNavigate(screen, { mode: 'cardboard', ...extra });
+
+  root.querySelector('#btn-cardboard').onclick = () => goCardboard('calibration');
+  root.querySelector('#btn-calib').onclick = () => goCardboard('calibration');
+  root.querySelector('#btn-tests').onclick = () => goCardboard('modules');
   root.querySelector('#btn-summary').onclick = () => onNavigate('summary');
 }

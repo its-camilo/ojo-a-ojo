@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
 import { buildHollowFaceGeometry } from './hollowFaceGeometry.js';
+import { installStudioEnvironment, addStudioLights } from '../utils/pbrEnvironment.js';
+import { makePlasterTexture, makeRoughnessFromCanvas } from '../utils/proceduralTextures.js';
 
 export class Module2HollowMask {
   constructor(stereo, monoRound, onComplete) {
@@ -11,35 +13,72 @@ export class Module2HollowMask {
     this.group = new THREE.Group();
     this.phase = 'mono';
     this.answers = {};
+    this._envHandle = null;
     this._buildScene();
   }
 
   _buildScene() {
-    const key = new THREE.DirectionalLight(0xfff8f0, 1.5);
-    key.position.set(0.2, 2.8, 2.2);
-    this.group.add(key);
-    const fill = new THREE.DirectionalLight(0xb8d4ff, 0.35);
-    fill.position.set(-1.5, 0.5, 1);
-    this.group.add(fill);
-    this.group.add(new THREE.AmbientLight(0xf0ebe3, 0.55));
+    this._envHandle = installStudioEnvironment(this.stereo.renderer, this.stereo.scene);
+    this.stereo.scene.background = new THREE.Color(0x080c10);
+
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(1.6, 48),
+      new THREE.MeshStandardMaterial({ color: 0x141820, roughness: 0.9, metalness: 0.05 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set(0, -0.95, -2.4);
+    floor.receiveShadow = true;
+    this.group.add(floor);
+
+    const wall = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.2, 2),
+      new THREE.MeshStandardMaterial({ color: 0x1a2028, roughness: 0.95 })
+    );
+    wall.position.set(0, 0.15, -3.35);
+    this.group.add(wall);
+
+    const lights = addStudioLights(this.group, { keyInt: 0.35, fillInt: 0.15, ambient: 0.08 });
+    const ugraze = new THREE.SpotLight(0xfff0d8, 3.2, 12, 0.55, 0.4);
+    ugraze.position.set(0.1, -0.4, -1.4);
+    ugraze.target.position.set(0, 0.35, -2.5);
+    ugraze.castShadow = true;
+    this.group.add(ugraze, ugraze.target);
+
+    const plasterMap = makePlasterTexture();
+    plasterMap.repeat.set(2, 2);
+    const roughMap = makeRoughnessFromCanvas(plasterMap, 0.42);
 
     const geo = buildHollowFaceGeometry();
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0xf3ece4,
-      roughness: 0.42,
+    const mat = new THREE.MeshPhysicalMaterial({
+      map: plasterMap,
+      roughnessMap: roughMap,
+      color: 0xf2ebe3,
+      roughness: 0.52,
       metalness: 0.02,
+      clearcoat: 0.08,
       side: THREE.DoubleSide,
     });
     this.mask = new THREE.Mesh(geo, mat);
-    this.mask.position.set(0, 0.38, -2.45);
-    this.mask.rotation.x = -0.08;
+    this.mask.position.set(0, 0.32, -2.42);
+    this.mask.rotation.x = -0.06;
+    this.mask.castShadow = true;
+    this.mask.receiveShadow = true;
     this.group.add(this.mask);
+
+    const plinth = new THREE.Mesh(
+      new THREE.BoxGeometry(0.35, 0.9, 0.35),
+      new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 0.55, metalness: 0.2 })
+    );
+    plinth.position.set(0, -0.5, -2.55);
+    plinth.castShadow = true;
+    this.group.add(plinth);
 
     this.ui = new THREE.Group();
     this._promptButtons();
     this.group.add(this.ui);
 
     this.stereo.setMono(this.phase === 'mono');
+    void lights;
   }
 
   _promptButtons() {
@@ -69,9 +108,8 @@ export class Module2HollowMask {
       'La máscara hueca suele percibirse convexa sin disparidad (Gregory, 1970; Hill y Bruce, 1993). Si en estéreo reporta concavidad o cambia el juicio, puede haber uso de disparidad binocular.';
     if (mono === 'convex' && stereo === 'concave') {
       interpretation +=
-        ' Patrón observado: ilusión más fuerte en monocular; estereopsis ayudó a desambiguar a corta distancia (Hill y Bruce, 1993).';
+        ' Patrón observado: ilusión más fuerte en monocular; estereopsis ayudó a desambiguar a corta distancia.';
     }
-    interpretation += ' Resultado exploratorio, no diagnóstico clínico.';
 
     this.onComplete({
       moduleId: 'hollow-mask',
@@ -90,6 +128,7 @@ export class Module2HollowMask {
     this.stereo.removeFromScene(this.group);
     this.mask.geometry.dispose();
     this.mask.material.dispose();
+    this._envHandle?.dispose();
   }
 
   getInteractables() {
