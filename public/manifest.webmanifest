@@ -1,0 +1,20 @@
+{
+  "name": "Ojo a Ojo",
+  "short_name": "Ojo a Ojo",
+  "description": "Tamizaje visual con ilusiones ópticas 3D — prototipo académico UNAL, no diagnóstico clínico.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
