@@ -157,7 +157,7 @@ export class Module4RDS {
         label: `Plano / No veo\n(${phase} · sin relieve 3D)`,
         onSelect: () => this._answer('none'),
       },
-    ]).forEach((b) => this.ui.add(b));
+    ], { preset: 'rds' }).forEach((b) => this.ui.add(b));
     if (!this.ui.parent) this.group.add(this.ui);
   }
 
