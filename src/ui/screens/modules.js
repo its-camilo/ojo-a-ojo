@@ -1,4 +1,5 @@
 import { ViewerSession, MODULE_IDS } from '../../viewer/ViewerSession.js';
+import { DeviceOrientationController } from '../../viewer/DeviceOrientation.js';
 import { setState } from '../../app/state.js';
 
 const MODULE_META = [
@@ -54,9 +55,9 @@ export function renderModules(root, state, { onNavigate }) {
     root.querySelector('#btn-calib').onclick = () => onNavigate('calibration', { mode });
     root.querySelector('#btn-summary').onclick = () => onNavigate('summary');
     root.querySelectorAll('[data-module]').forEach((btn) => {
-      btn.onclick = () => launchModule(btn.dataset.module);
+      btn.onclick = () => beginModuleFromGesture(btn.dataset.module);
     });
-    root.querySelector('#btn-seq')?.addEventListener('click', () => runSequence(0));
+    root.querySelector('#btn-seq')?.addEventListener('click', () => beginModuleFromGesture(MODULE_IDS[0], 0));
     root.querySelector('#countdown')?.addEventListener('click', () => {
       let n = 3;
       const btn = root.querySelector('#countdown');
@@ -79,28 +80,84 @@ export function renderModules(root, state, { onNavigate }) {
       onNavigate('summary');
       return;
     }
-    launchModule(MODULE_IDS[index]);
+    beginModuleFromGesture(MODULE_IDS[index], index);
   };
 
-  const launchModule = (moduleId) => {
+  const beginModuleFromGesture = (moduleId, seqIndex = null) => {
+    const permissionPromise =
+      mode === 'cardboard' ? DeviceOrientationController.capturePermissionFromGesture() : null;
+    if (seqIndex !== null) sequenceIndex = seqIndex;
+    void launchModule(moduleId, { permissionPromise });
+  };
+
+  const launchModule = async (moduleId, { permissionPromise = null } = {}) => {
     const viewMode = parseInt(root.querySelector('#view-mode')?.value ?? state.viewMode ?? 0, 10);
     root.innerHTML = `
       <div class="viewer-shell" style="height:100dvh;width:100vw;">
         <div id="viewer-mount" class="viewer-mount" tabindex="0"></div>
+        <div id="gyro-overlay" class="gyro-overlay" hidden>
+          <p id="gyro-overlay-msg">Tocar para activar giroscopio</p>
+          <button type="button" class="btn btn--primary" id="btn-activate-gyro">Tocar para activar giroscopio</button>
+        </div>
         <div class="viewer-hud">
           <p class="disclaimer-inline">Mirada central ~1,5 s · clic/toque/Enter alternativo</p>
+          <button type="button" id="btn-recenter" class="btn btn--ghost btn--sm" hidden>Recentrar</button>
           <button type="button" class="btn btn--ghost" id="exit-viewer">Salir del módulo</button>
         </div>
       </div>
     `;
+
+    const overlay = root.querySelector('#gyro-overlay');
+    const overlayMsg = root.querySelector('#gyro-overlay-msg');
+    const btnActivateGyro = root.querySelector('#btn-activate-gyro');
+    const btnRecenter = root.querySelector('#btn-recenter');
+
     const mount = root.querySelector('#viewer-mount');
     setState({ viewerActive: true });
     viewer?.dispose();
-    viewer = new ViewerSession(mount, { calibration: cal, viewMode, mode });
+
+    viewer = new ViewerSession(mount, {
+      calibration: cal,
+      viewMode,
+      mode,
+      onGyroOverlayNeeded: (reason) => {
+        if (mode !== 'cardboard') return;
+        overlay.hidden = false;
+        overlayMsg.textContent =
+          reason === 'permission'
+            ? 'Se necesita permiso de giroscopio para mover la vista.'
+            : 'No hay señal del giroscopio — puede arrastrar con el dedo o toque abajo.';
+      },
+    });
+
     if (typeof window !== 'undefined' && window.__OJO_A_OJO__) {
       window.__OJO_A_OJO__.viewerSession = viewer;
     }
+
     viewer.stereo.setViewMode(viewMode);
+
+    if (mode === 'cardboard') {
+      btnRecenter.hidden = false;
+      const gyroOpts = {
+        permissionPromise,
+        assumeGranted: Boolean(cal.gyroEnabled),
+      };
+      const activated = await viewer.activateGyro(gyroOpts);
+      if (activated) {
+        overlay.hidden = true;
+      }
+    }
+
+    btnActivateGyro.onclick = () => {
+      const perm = DeviceOrientationController.capturePermissionFromGesture();
+      void (async () => {
+        const ok = await viewer.activateGyro({ permissionPromise: perm, assumeGranted: true });
+        if (ok) overlay.hidden = true;
+      })();
+    };
+
+    btnRecenter.onclick = () => viewer.recenterGyro();
+
     viewer.startModule(moduleId, () => {
       if (sequenceIndex !== null) {
         runSequence(sequenceIndex + 1);
@@ -108,6 +165,7 @@ export function renderModules(root, state, { onNavigate }) {
         showHub();
       }
     });
+
     root.querySelector('#exit-viewer').onclick = () => {
       sequenceIndex = null;
       showHub();
