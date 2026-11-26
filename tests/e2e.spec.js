@@ -18,8 +18,12 @@ async function startCardboardFlow(page) {
   });
   await page.reload();
   await expect(page.getByRole('heading', { name: /Ojo a Ojo/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Calibración/i })).toHaveCount(0);
+  await page.screenshot({ path: path.join(ARTIFACTS, 'home.png'), fullPage: true });
   await page.getByRole('button', { name: /Comenzar con Cardboard/i }).click();
+  await expect(page).toHaveURL(/\/calibracion\/?$/);
   await page.getByRole('button', { name: /Guardar y continuar/i }).click();
+  await expect(page).toHaveURL(/\/sesion\/?$/);
   await expect(page.getByRole('heading', { name: /Pruebas 3D/i })).toBeVisible();
 }
 
@@ -45,6 +49,10 @@ test('Ojo a Ojo — flujo Cardboard completo sin errores WebGL', async ({ page }
     await page.getByRole('button', { name: 'Abrir módulo' }).nth(i).click();
     const canvas = page.locator('canvas.viewer-canvas');
     await expect(canvas).toBeVisible({ timeout: 15000 });
+    const dwellMs = await page.evaluate(
+      () => window.__OJO_A_OJO__?.viewerSession?.gaze?.dwellMs ?? 0
+    );
+    expect(dwellMs).toBe(3000);
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, moduleShots[i]), fullPage: true });
     await page.evaluate(() => window.__OJO_A_OJO__?.viewerSession?.completeForE2e());
@@ -61,6 +69,7 @@ test('Ojo a Ojo — flujo Cardboard completo sin errores WebGL', async ({ page }
   expect(saved?.modules?.rds?.stereoDepth).toBeTruthy();
 
   await page.getByRole('button', { name: /Finalizar y ver resumen/i }).click();
+  await expect(page).toHaveURL(/\/resumen\/?$/);
   await expect(page.getByRole('heading', { name: /Resumen de tamizaje/i })).toBeVisible();
 
   const table = page.getByTestId('summary-table');
@@ -86,6 +95,14 @@ test('Ojo a Ojo — flujo Cardboard completo sin errores WebGL', async ({ page }
   expect(severe, `Errores de consola/página: ${severe.join('\n')}`).toHaveLength(0);
 });
 
+test('Router SPA — resumen sin sesión redirige a inicio', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.removeItem('ojo-a-ojo-results-v1'));
+  await page.goto('/resumen');
+  await expect(page).toHaveURL(/\/?$/);
+  await expect(page.getByRole('heading', { name: /Ojo a Ojo/i })).toBeVisible();
+});
+
 test('Capturas de entrega en artifacts', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
@@ -94,6 +111,7 @@ test('Capturas de entrega en artifacts', async ({ page }) => {
     localStorage.removeItem('ojo-a-ojo-calibration-v1');
   });
   await page.reload();
+  await page.screenshot({ path: path.join(ARTIFACTS, 'home.png'), fullPage: true });
   await page.screenshot({ path: path.join(ARTIFACTS, 'landing-desktop.png'), fullPage: true });
 
   await page.setViewportSize({ width: 844, height: 390 });
@@ -105,7 +123,7 @@ test('Capturas de entrega en artifacts', async ({ page }) => {
   await page.getByRole('button', { name: /Guardar y continuar/i }).click();
 
   const sceneNames = [
-    ['scene-dichoptic.png', 0],
+    ['scene-dicoptic.png', 0],
     ['scene-hollow-mask.png', 1],
     ['scene-ames-room.png', 2],
     ['scene-rds.png', 3],

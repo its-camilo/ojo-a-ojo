@@ -1,6 +1,6 @@
-import { ViewerSession, MODULE_IDS } from '../../viewer/ViewerSession.js';
-import { DeviceOrientationController } from '../../viewer/DeviceOrientation.js';
-import { setState } from '../../app/state.js';
+import { ViewerSession, MODULE_IDS } from '../../rendering/ViewerSession.js';
+import { DeviceOrientationController } from '../../services/deviceOrientation.js';
+import { setState } from '../../domain/sessionState.js';
 
 const MODULE_META = [
   { id: 'balance', n: 1, title: 'Balance dicóptico 3D', desc: 'Supresión / dominancia (Martín et al., 2020)' },
@@ -9,7 +9,7 @@ const MODULE_META = [
   { id: 'rds', n: 4, title: 'RDS 3D grueso', desc: 'Estereopsis global (Julesz, 1960; Bonfanti et al., 2015)' },
 ];
 
-export function renderModules(root, state, { onNavigate }) {
+export function renderSession(root, state, { onNavigate }) {
   let viewer = null;
   const cal = state.calibration;
   const mode = state.mode || 'cardboard';
@@ -22,7 +22,7 @@ export function renderModules(root, state, { onNavigate }) {
       <main class="screen screen--modules">
         <header>
           <h1>Pruebas 3D en el visor</h1>
-          <p class="lead">Coloque el teléfono en el Cardboard y mire al centro del visor para elegir con ~1,5 s de fijación; también puede tocar o pulsar Enter.</p>
+          <p class="lead">Coloque el teléfono en el Cardboard y mire al centro del visor para elegir con <strong>3 s</strong> de fijación; también puede tocar o pulsar Enter.</p>
           <div class="toolbar">
             <label>Modo vista
               <select id="view-mode">

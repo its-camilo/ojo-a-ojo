@@ -3,15 +3,15 @@ import {
   DEFAULT_CALIBRATION,
   resetPpiToAuto,
   applyAutoScreenPpiIfNeeded,
-} from '../../utils/storage.js';
-import { detectScreenPpi, formatAutoPpiLabel } from '../../utils/screenDetection.js';
+} from '../../services/storage.js';
+import { detectScreenPpi, formatAutoPpiLabel } from '../../services/screenDetection.js';
 import {
   cardVisualSizePx,
   getCalibrationViewport,
   landscapeGuideWidthPx,
   NONIUS_HEIGHT,
-} from '../../utils/calibrationLayout.js';
-import { DeviceOrientationController } from '../../viewer/DeviceOrientation.js';
+} from '../../services/calibrationLayout.js';
+import { DeviceOrientationController } from '../../services/deviceOrientation.js';
 
 const CARD_W_MM = 85.6;
 const CARD_H_MM = 53.98;
@@ -91,7 +91,7 @@ export function renderCalibration(root, state, { onNavigate }) {
       </section>
 
       <section class="card">
-        <h2>Distorsión de lentes (Brown-Conrady, Google Cardboard)</h2>
+        <h2>Distorsión de lentes (Brown-Conrady, Cardboard)</h2>
         <p>k1 default 0,33582564 · k2 default 0,55348791 — calibrables.</p>
         <label class="field">k1 <input type="range" id="k1" min="0" max="0.8" step="0.0001" value="${c.k1}" /></label>
         <label class="field">k2 <input type="range" id="k2" min="0" max="1.2" step="0.0001" value="${c.k2}" /></label>

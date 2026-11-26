@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /** Máscara facial esculpida de alta resolución (interior cóncavo hacia el observador). */
 export function buildHollowFaceGeometry() {
-  const geo = new THREE.SphereGeometry(0.78, 96, 80, 0, Math.PI * 2, 0.12 * Math.PI, 0.78 * Math.PI);
+  const geo = new THREE.SphereGeometry(0.78, 192, 192, 0, Math.PI * 2, 0.12 * Math.PI, 0.78 * Math.PI);
   const pos = geo.attributes.position;
 
   for (let i = 0; i < pos.count; i++) {

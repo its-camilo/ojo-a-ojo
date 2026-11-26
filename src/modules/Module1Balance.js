@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import balanceVert from '../shaders/dichoptic-balance.vert.glsl?raw';
 import balanceFrag from '../shaders/dichoptic-balance.frag.glsl?raw';
-import { injectColorOps, prepareGlslForThree } from '../utils/shaderBuild.js';
-import { Staircase1up1down } from '../utils/psychophysics.js';
-import { LAYER_LEFT, LAYER_RIGHT } from '../viewer/StereoRenderer.js';
+import { injectColorOps, prepareGlslForThree } from '../rendering/shaderBuild.js';
+import { Staircase1up1down } from '../domain/psychophysics.js';
+import { LAYER_LEFT, LAYER_RIGHT } from '../rendering/StereoRenderer.js';
 import { createButtonRow } from './uiLayout.js';
-import { installStudioEnvironment, addStudioLights } from '../utils/pbrEnvironment.js';
+import { installStudioEnvironment, addStudioLights } from '../rendering/pbrEnvironment.js';
+import { disposeObject3D } from '../rendering/sceneDispose.js';
 
 export class Module1Balance {
   constructor(stereo, onComplete) {
@@ -44,7 +45,7 @@ export class Module1Balance {
     matRight.uniforms.eyePass.value = 2;
 
     const pedestal = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.55, 0.62, 0.12, 48),
+      new THREE.CylinderGeometry(0.55, 0.62, 0.12, 72),
       new THREE.MeshPhysicalMaterial({
         color: 0x1a2438,
         metalness: 0.65,
@@ -92,7 +93,7 @@ export class Module1Balance {
           roughness: 0.12,
         })
       );
-      ring.position.set(0, 0.12, -2.38);
+      ring.position.set(0, 0.12, -2.38 + i * 0.004);
       ring.layers.enable(LAYER_LEFT);
       ring.layers.enable(LAYER_RIGHT);
       this.group.add(ring);
@@ -187,6 +188,8 @@ export class Module1Balance {
     this.materials.left.dispose();
     this.materials.right.dispose();
     this._envHandle?.dispose();
+    disposeObject3D(this.group);
+    this.group = new THREE.Group();
   }
 
   getInteractables() {

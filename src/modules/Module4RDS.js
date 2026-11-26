@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import rdsVert from '../shaders/rds-particles.vert.glsl?raw';
 import rdsFrag from '../shaders/rds-particles.frag.glsl?raw';
-import { injectColorOps, prepareGlslForThree } from '../utils/shaderBuild.js';
-import { disparityPxToArcsec } from '../utils/arcsec.js';
-import { LAYER_LEFT, LAYER_RIGHT } from '../viewer/StereoRenderer.js';
+import { injectColorOps, prepareGlslForThree } from '../rendering/shaderBuild.js';
+import { disparityPxToArcsec } from '../domain/arcsec.js';
+import { LAYER_LEFT, LAYER_RIGHT } from '../rendering/StereoRenderer.js';
 import { createButtonRow } from './uiLayout.js';
-import { clearGroup } from './clearGroup.js';
-import { installStudioEnvironment, addStudioLights } from '../utils/pbrEnvironment.js';
+import { disposeGroup } from './clearGroup.js';
+import { installStudioEnvironment, addStudioLights } from '../rendering/pbrEnvironment.js';
+import { disposeObject3D } from '../rendering/sceneDispose.js';
 
 export class Module4RDS {
   constructor(stereo, calibration, monoRound, onComplete) {
@@ -63,7 +64,7 @@ export class Module4RDS {
         transmission: 0.85,
       })
     );
-    glass.position.set(0, 0.2, -2.59);
+    glass.position.set(0, 0.2, -2.56);
     glass.layers.enable(LAYER_LEFT);
     glass.layers.enable(LAYER_RIGHT);
     this.group.add(glass);
@@ -74,7 +75,7 @@ export class Module4RDS {
     const spread = 2;
     const halfDisp = (this.disparityPx / (this.calibration.ppi || 400)) * 0.012;
 
-    const seedGeo = new THREE.SphereGeometry(0.014, 8, 8);
+    const seedGeo = new THREE.SphereGeometry(0.014, 16, 16);
     const mat = new THREE.MeshPhysicalMaterial({
       color: 0xc8d8f0,
       metalness: 0.35,
@@ -125,7 +126,7 @@ export class Module4RDS {
 
   _buildUI() {
     if (!this.ui) this.ui = new THREE.Group();
-    clearGroup(this.ui);
+    disposeGroup(this.ui);
     const tag = this.phase === 'mono' ? 'Mono' : 'Estéreo';
     createButtonRow([
       { label: `${tag}: Adelante`, onSelect: () => this._answer('near') },
@@ -140,7 +141,7 @@ export class Module4RDS {
       this.monoAnswer = depth;
       this.phase = 'stereo';
       this.stereo.setMono(false);
-      clearGroup(this.ui);
+      disposeGroup(this.ui);
       this._buildUI();
       return;
     }
@@ -163,10 +164,12 @@ export class Module4RDS {
 
   unmount() {
     this.stereo.removeFromScene(this.group);
-    this.pointsLeft.material.dispose();
-    this.pointsRight.material.dispose();
-    this.pointsLeft.geometry.dispose();
     this._envHandle?.dispose();
+    disposeObject3D(this.group);
+    this.group = new THREE.Group();
+    this.ui = null;
+    this.pointsLeft = null;
+    this.pointsRight = null;
   }
 
   getInteractables() {

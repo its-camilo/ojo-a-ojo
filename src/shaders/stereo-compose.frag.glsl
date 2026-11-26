@@ -23,7 +23,8 @@ vec2 brownConrady(vec2 uv, float signK) {
 
 vec4 sampleEye(sampler2D tex, vec2 uv, bool distort) {
   vec2 st = distort ? brownConrady(uv, 1.0) : uv;
-  st = clamp(st, 0.001, 0.999);
+  // Full-physical-res sampling: slight inset avoids filtering bleed at RTT edges under lens warp.
+  st = clamp(st, 0.0, 1.0);
   vec4 col = texture(tex, st);
   return col;
 }

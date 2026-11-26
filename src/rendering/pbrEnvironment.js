@@ -40,7 +40,7 @@ export function addStudioLights(group, opts = {}) {
   const keyLight = new THREE.DirectionalLight(key, keyInt);
   keyLight.position.set(2.2, 4.5, 3.8);
   keyLight.castShadow = true;
-  keyLight.shadow.mapSize.set(1024, 1024);
+  keyLight.shadow.mapSize.set(2048, 2048);
   keyLight.shadow.camera.near = 0.5;
   keyLight.shadow.camera.far = 24;
   keyLight.shadow.bias = -0.0004;

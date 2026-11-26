@@ -1,4 +1,4 @@
-import { LAYER_BOTH } from '../viewer/StereoRenderer.js';
+import { LAYER_BOTH } from './StereoRenderer.js';
 
 /** Contenido compartido visible en ambos ojos (paredes, UI, figuras no dicópticas). */
 export function enableSharedStereoLayers(object) {

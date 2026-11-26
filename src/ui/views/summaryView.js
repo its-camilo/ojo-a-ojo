@@ -1,5 +1,5 @@
-import { appState, finishSession } from '../../app/state.js';
-import { clearSessionResults, loadSessionResults } from '../../utils/storage.js';
+import { appState, finishSession } from '../../domain/sessionState.js';
+import { clearSessionResults, loadSessionResults } from '../../services/storage.js';
 
 export const MODULE_LABELS = {
   balance: 'Balance dicóptico 3D',

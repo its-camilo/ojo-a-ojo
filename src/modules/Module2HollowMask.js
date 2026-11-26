@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
 import { buildHollowFaceGeometry } from './hollowFaceGeometry.js';
-import { makePlasterTexture } from '../utils/proceduralTextures.js';
-import { enableSharedStereoLayers } from '../utils/stereoLayers.js';
+import { makePlasterTexture } from '../rendering/proceduralTextures.js';
+import { enableSharedStereoLayers } from '../rendering/stereoLayers.js';
+import { disposeObject3D } from '../rendering/sceneDispose.js';
 
 export class Module2HollowMask {
   constructor(stereo, monoRound, onComplete) {
@@ -62,7 +63,10 @@ export class Module2HollowMask {
       side: THREE.DoubleSide,
     });
     this.mask = new THREE.Mesh(geo, mat);
-    this.mask.position.set(0, 0.32, -2.42);
+    this.mask.position.set(0, 0.32, -2.38);
+    mat.polygonOffset = true;
+    mat.polygonOffsetFactor = 1;
+    mat.polygonOffsetUnits = 2;
     this.mask.rotation.x = -0.06;
     this.group.add(this.mask);
 
@@ -128,8 +132,9 @@ export class Module2HollowMask {
 
   unmount() {
     this.stereo.removeFromScene(this.group);
-    this.mask.geometry.dispose();
-    this.mask.material.dispose();
+    disposeObject3D(this.group);
+    this.group = new THREE.Group();
+    this.mask = null;
   }
 
   getInteractables() {

@@ -1,14 +1,10 @@
 import * as THREE from 'three';
 import { StereoRenderer } from './StereoRenderer.js';
 import { GazeDwellSystem } from './GazeDwell.js';
-import { DeviceOrientationController } from './DeviceOrientation.js';
-import { Module1Balance } from '../modules/Module1Balance.js';
-import { Module2HollowMask } from '../modules/Module2HollowMask.js';
-import { Module3Ames } from '../modules/Module3Ames.js';
-import { Module4RDS } from '../modules/Module4RDS.js';
-import { recordModuleResult } from '../app/state.js';
+import { DeviceOrientationController } from '../services/deviceOrientation.js';
+import { createSceneModule, MODULE_IDS } from '../domain/moduleRegistry.js';
+import { recordModuleResult } from '../domain/sessionState.js';
 
-const MODULE_IDS = ['balance', 'hollow-mask', 'ames', 'rds'];
 const GYRO_SIGNAL_CHECK_MS = 1200;
 
 export class ViewerSession {
@@ -32,18 +28,13 @@ export class ViewerSession {
     this._last = performance.now();
     this._gyroSignalTimer = null;
     this.onGyroOverlayNeeded = options.onGyroOverlayNeeded ?? null;
-    this._gyroActivated = false;
+    this._gazeHighlight = null;
   }
 
-  /**
-   * Enlaza deviceorientation tras el gesto que abre el módulo (iOS) o de inmediato (Android).
-   * @param {{ permissionPromise?: Promise<string>|null, assumeGranted?: boolean }} gyroOpts
-   */
   async activateGyro(gyroOpts = {}) {
     if (!(this.controls instanceof DeviceOrientationController)) return true;
 
     const ok = await this.controls.activate(gyroOpts);
-    this._gyroActivated = ok;
     if (ok) {
       this.controls.recenter();
       this._scheduleGyroSignalCheck();
@@ -77,22 +68,14 @@ export class ViewerSession {
       onModuleDone(payload);
     };
 
-    switch (moduleId) {
-      case 'balance':
-        this.activeModule = new Module1Balance(this.stereo, complete);
-        break;
-      case 'hollow-mask':
-        this.activeModule = new Module2HollowMask(this.stereo, monoOnly, complete);
-        break;
-      case 'ames':
-        this.activeModule = new Module3Ames(this.stereo, monoOnly, complete);
-        break;
-      case 'rds':
-        this.activeModule = new Module4RDS(this.stereo, cal, monoOnly, complete);
-        break;
-      default:
-        return;
-    }
+    this.activeModule = createSceneModule(moduleId, {
+      stereo: this.stereo,
+      complete,
+      monoOnly,
+      cal,
+    });
+    if (!this.activeModule) return;
+
     this.stereo.scene.environment = null;
     this.stereo.renderer.toneMappingExposure = 0.92;
     this.activeModule.mount();
@@ -108,6 +91,39 @@ export class ViewerSession {
     }
   }
 
+  _resetGazeHighlight(mesh) {
+    if (!mesh?.userData?.gazeButton) return;
+    if (mesh.userData._baseScale != null) mesh.scale.setScalar(mesh.userData._baseScale);
+    if (mesh.material && mesh.userData._baseColor != null) mesh.material.color.setHex(mesh.userData._baseColor);
+    if (mesh.material) mesh.material.opacity = 1;
+  }
+
+  _clearGazeHighlight() {
+    if (this._gazeHighlight) this._resetGazeHighlight(this._gazeHighlight);
+    this._gazeHighlight = null;
+  }
+
+  _applyGazeFeedback(dwell) {
+    const target = dwell.target;
+    const progress = dwell.progress;
+    if (this._gazeHighlight && this._gazeHighlight !== target) {
+      this._resetGazeHighlight(this._gazeHighlight);
+      this._gazeHighlight = null;
+    }
+    if (!target?.userData?.gazeButton) return;
+    this._gazeHighlight = target;
+    if (target.userData._baseScale == null) target.userData._baseScale = target.scale.x;
+    if (target.userData._baseColor == null && target.material?.color) {
+      target.userData._baseColor = target.material.color.getHex();
+    }
+    target.scale.setScalar(target.userData._baseScale * (1 + progress * 0.08));
+    if (target.material?.color) {
+      const glow = 0.55 + progress * 0.45;
+      target.material.color.setRGB(glow, glow, Math.min(1, glow + 0.08));
+    }
+    if (target.material) target.material.opacity = 0.94 + progress * 0.06;
+  }
+
   stopModule() {
     if (this._gyroSignalTimer) {
       clearTimeout(this._gyroSignalTimer);
@@ -115,10 +131,13 @@ export class ViewerSession {
     }
     if (this._raf) cancelAnimationFrame(this._raf);
     this._raf = null;
+    this._clearGazeHighlight();
     if (this.activeModule) {
       this.activeModule.unmount();
       this.activeModule = null;
     }
+    this.stereo.scene.environment = null;
+    this.stereo.setReticleProgress(0, false);
   }
 
   _loop() {
@@ -132,18 +151,17 @@ export class ViewerSession {
 
     const interactables = this.activeModule?.getInteractables?.() ?? [];
     const dwell = this.gaze.update(delta, interactables);
-    this.stereo.setReticleProgress(dwell.progress);
+    this._applyGazeFeedback(dwell);
+    this.stereo.setReticleProgress(dwell.progress, Boolean(dwell.target));
     this.stereo.render();
 
     this._raf = requestAnimationFrame(() => this._loop());
   }
 
-  /** Cierra el módulo activo con respuestas de ensayo (E2E / verificación). */
   completeForE2e() {
     this.activeModule?.completeForE2e?.();
   }
 
-  /** Proyección NDC del ojo izquierdo (E2E / verificación). */
   projectToNdc(object3d) {
     this.stereo.head.updateMatrixWorld(true);
     object3d.updateMatrixWorld(true);
