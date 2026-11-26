@@ -25,8 +25,8 @@ export class Module1Balance {
   _buildEnvironment() {
     this._envHandle = installStudioEnvironment(this.stereo.renderer, this.stereo.scene);
     this.stereo.scene.background = new THREE.Color(0x060a12);
-    addStudioLights(this.group, { keyInt: 1.8, ambient: 0.15 });
-    this.group.add(new THREE.HemisphereLight(0x8eb4ff, 0x0a0e16, 0.35));
+    addStudioLights(this.group, { keyInt: 2.0, fillInt: 0.55, ambient: 0.22 });
+    this.group.add(new THREE.HemisphereLight(0xa8c8ff, 0x0a0e16, 0.42));
   }
 
   _buildScene() {
@@ -38,19 +38,21 @@ export class Module1Balance {
         contrastLeftLin: { value: 1 },
         contrastRightLin: { value: 1 },
         eyePass: { value: 1 },
-        baseColor: { value: new THREE.Color(0x5a9fff) },
+        baseColor: { value: new THREE.Color(0x7ab8ff) },
       },
     });
     const matRight = matLeft.clone();
     matRight.uniforms.eyePass.value = 2;
 
     const pedestal = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.55, 0.62, 0.12, 72),
+      new THREE.CylinderGeometry(0.55, 0.62, 0.12, 64),
       new THREE.MeshPhysicalMaterial({
-        color: 0x1a2438,
-        metalness: 0.65,
-        roughness: 0.28,
-        clearcoat: 0.4,
+        color: 0x1e2a40,
+        metalness: 0.72,
+        roughness: 0.16,
+        clearcoat: 0.85,
+        clearcoatRoughness: 0.08,
+        reflectivity: 1,
       })
     );
     pedestal.position.set(0, -0.72, -2.35);
@@ -58,6 +60,22 @@ export class Module1Balance {
     pedestal.layers.set(LAYER_LEFT);
     pedestal.layers.enable(LAYER_RIGHT);
     this.group.add(pedestal);
+
+    const pedestalDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(0.54, 64),
+      new THREE.MeshStandardMaterial({
+        color: 0x9ab4e8,
+        metalness: 0.95,
+        roughness: 0.08,
+        emissive: 0x1a2848,
+        emissiveIntensity: 0.15,
+      })
+    );
+    pedestalDisc.rotation.x = -Math.PI / 2;
+    pedestalDisc.position.set(0, -0.655, -2.35);
+    pedestalDisc.layers.enable(LAYER_LEFT);
+    pedestalDisc.layers.enable(LAYER_RIGHT);
+    this.group.add(pedestalDisc);
 
     const arch = new THREE.Mesh(
       new THREE.TorusGeometry(0.95, 0.025, 8, 64, Math.PI),
@@ -70,12 +88,13 @@ export class Module1Balance {
     this.group.add(arch);
 
     const lensBody = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.38, 0.42, 0.18, 64),
+      new THREE.CylinderGeometry(0.38, 0.42, 0.18, 72),
       new THREE.MeshPhysicalMaterial({
-        color: 0x242e42,
-        metalness: 0.85,
-        roughness: 0.18,
+        color: 0x28344c,
+        metalness: 0.88,
+        roughness: 0.12,
         clearcoat: 1,
+        clearcoatRoughness: 0.05,
       })
     );
     lensBody.rotation.x = Math.PI / 2;
@@ -84,16 +103,18 @@ export class Module1Balance {
     lensBody.layers.enable(LAYER_RIGHT);
     this.group.add(lensBody);
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.22 + i * 0.09, 0.012, 16, 80),
+        new THREE.TorusGeometry(0.2 + i * 0.082, 0.011, 20, 96),
         new THREE.MeshStandardMaterial({
-          color: 0xb8c8e0,
-          metalness: 0.95,
-          roughness: 0.12,
+          color: 0xd0e0f8,
+          emissive: 0x2a4060,
+          emissiveIntensity: 0.12,
+          metalness: 0.97,
+          roughness: 0.08,
         })
       );
-      ring.position.set(0, 0.12, -2.38 + i * 0.004);
+      ring.position.set(0, 0.12, -2.38);
       ring.layers.enable(LAYER_LEFT);
       ring.layers.enable(LAYER_RIGHT);
       this.group.add(ring);
@@ -180,6 +201,7 @@ export class Module1Balance {
   }
 
   mount() {
+    this.stereo.renderer.toneMappingExposure = 1.18;
     this.stereo.addToScene(this.group);
   }
 
