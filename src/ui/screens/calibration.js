@@ -1,11 +1,25 @@
-import { saveCalibration, DEFAULT_CALIBRATION } from '../../utils/storage.js';
+import {
+  saveCalibration,
+  DEFAULT_CALIBRATION,
+  resetPpiToAuto,
+  applyAutoScreenPpiIfNeeded,
+} from '../../utils/storage.js';
+import { detectScreenPpi, formatAutoPpiLabel } from '../../utils/screenDetection.js';
 import { DeviceOrientationController } from '../../viewer/DeviceOrientation.js';
 
 const CARD_W_MM = 85.6;
 const CARD_H_MM = 53.98;
 
 export function renderCalibration(root, state, { onNavigate }) {
-  const c = { ...state.calibration };
+  const freshAuto = applyAutoScreenPpiIfNeeded();
+  const c = { ...freshAuto, ...state.calibration };
+  if (!c.ppiManual) {
+    const det = detectScreenPpi();
+    c.ppi = det.ppi;
+    c.ppiAuto = det.ppi;
+    c.ppiProfileId = det.profileId;
+  }
+  const detection = detectScreenPpi();
   let gyroMonitor = null;
   let gyroCtrl = null;
 
@@ -17,13 +31,21 @@ export function renderCalibration(root, state, { onNavigate }) {
         <p class="disclaimer-inline">Prototipo de tamizaje — no diagnóstico clínico.</p>
       </header>
 
-      <section class="card" id="card-ppi">
+      <section class="card" id="card-ppi" data-ppi-source="${c.ppiManual ? 'manual' : 'auto'}" data-ppi-auto="${(c.ppiAuto ?? detection.ppi).toFixed(1)}">
         <h2>PPI con tarjeta bancaria (ISO 7810: ${CARD_W_MM}×${CARD_H_MM} mm, Li et al., 2020)</h2>
-        <p>Ajuste el ancho del rectángulo hasta que coincida con su tarjeta.</p>
+        <p id="ppi-auto-status" class="hint" data-testid="ppi-auto-status">${
+          c.ppiManual
+            ? `Ajuste manual activo (${c.ppi.toFixed(1)} PPI). Puede volver a la detección automática.`
+            : formatAutoPpiLabel(detection)
+        }</p>
+        <p class="hint">px/mm ≈ ${((c.ppi || detection.ppi) / 25.4).toFixed(3)} · Ajuste el rectángulo hasta que coincida con su tarjeta.</p>
         <div class="card-visual" id="card-visual" style="width: ${(CARD_W_MM / 25.4) * c.ppi}px; height: ${(CARD_H_MM / 25.4) * c.ppi}px;"></div>
         <label class="field">PPI estimado: <output id="ppi-out">${c.ppi.toFixed(1)}</output>
           <input type="range" id="ppi-slider" min="280" max="560" step="0.5" value="${c.ppi}" />
         </label>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-ppi-auto" ${c.ppiManual ? '' : 'hidden'}>
+          Usar detección automática
+        </button>
       </section>
 
       <section class="card">
@@ -72,11 +94,36 @@ export function renderCalibration(root, state, { onNavigate }) {
   const ppiSlider = root.querySelector('#ppi-slider');
   const cardVisual = root.querySelector('#card-visual');
   const ppiOut = root.querySelector('#ppi-out');
-  ppiSlider.oninput = () => {
-    c.ppi = parseFloat(ppiSlider.value);
+  const ppiAutoStatus = root.querySelector('#ppi-auto-status');
+  const ppiCard = root.querySelector('#card-ppi');
+  const btnPpiAuto = root.querySelector('#btn-ppi-auto');
+
+  const syncPpiVisual = () => {
     ppiOut.textContent = c.ppi.toFixed(1);
     cardVisual.style.width = `${(CARD_W_MM / 25.4) * c.ppi}px`;
     cardVisual.style.height = `${(CARD_H_MM / 25.4) * c.ppi}px`;
+    ppiCard.dataset.ppiSource = c.ppiManual ? 'manual' : 'auto';
+    ppiCard.dataset.ppiAuto = (c.ppiAuto ?? c.ppi).toFixed(1);
+    if (c.ppiManual) {
+      ppiAutoStatus.textContent = `Ajuste manual activo (${c.ppi.toFixed(1)} PPI). Puede volver a la detección automática.`;
+      btnPpiAuto.hidden = false;
+    } else {
+      ppiAutoStatus.textContent = formatAutoPpiLabel(detectScreenPpi());
+      btnPpiAuto.hidden = true;
+    }
+  };
+
+  ppiSlider.oninput = () => {
+    c.ppi = parseFloat(ppiSlider.value);
+    c.ppiManual = true;
+    syncPpiVisual();
+  };
+
+  btnPpiAuto.onclick = () => {
+    const next = resetPpiToAuto();
+    Object.assign(c, next);
+    ppiSlider.value = String(c.ppi);
+    syncPpiVisual();
   };
 
   const ipdSlider = root.querySelector('#ipd-slider');

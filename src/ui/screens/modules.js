@@ -156,7 +156,12 @@ export function renderModules(root, state, { onNavigate }) {
       })();
     };
 
-    btnRecenter.onclick = () => viewer.recenterGyro();
+    const onRecenter = () => viewer.recenterGyro();
+    btnRecenter.addEventListener('click', onRecenter);
+    btnRecenter.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      onRecenter();
+    });
 
     viewer.startModule(moduleId, () => {
       if (sequenceIndex !== null) {

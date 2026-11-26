@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {
   deviceOrientationToQuaternion,
   getScreenOrientationRadians,
+  orientationWithGain,
   readOrientationRadians,
 } from './deviceOrientationMath.js';
 
@@ -9,6 +10,8 @@ import {
 let iosPermissionGrantedSession = false;
 
 const SIGNAL_TIMEOUT_MS = 1200;
+/** Slerp por frame hacia la orientación medida (reduce micro-temblores). */
+const GYRO_SLERP_ALPHA = 0.22;
 
 export class DeviceOrientationController {
   constructor(domElement) {
@@ -21,7 +24,11 @@ export class DeviceOrientationController {
       this._screenAngleRad = getScreenOrientationRadians();
     };
     this._screenAngleRad = getScreenOrientationRadians();
-    this._yawOffsetRad = null;
+    /** @type {{ alpha: number, beta: number, gamma: number }|null} */
+    this._baselineRad = null;
+    this._measurementQuat = new THREE.Quaternion();
+    this._displayQuat = new THREE.Quaternion();
+    this._snapDisplayQuat = true;
     this._lastEventAt = 0;
     this._lastAlphaDeg = null;
     this._lastBetaDeg = null;
@@ -122,33 +129,40 @@ export class DeviceOrientationController {
     if (!this.enabled) return;
     if (e.alpha == null && e.beta == null && e.gamma == null) return;
 
-    const { alpha, beta, gamma } = readOrientationRadians(e);
+    const raw = readOrientationRadians(e);
     this._lastAlphaDeg = e.alpha;
     this._lastBetaDeg = e.beta;
     this._lastGammaDeg = e.gamma;
     this._lastEventAt = performance.now();
 
-    let yaw = alpha;
-    if (this._yawOffsetRad != null) {
-      yaw = alpha - this._yawOffsetRad;
-    }
-
-    deviceOrientationToQuaternion(yaw, beta, gamma, this._screenAngleRad, this.quaternion);
+    const effective = orientationWithGain(raw, this._baselineRad);
+    deviceOrientationToQuaternion(
+      effective.alpha,
+      effective.beta,
+      effective.gamma,
+      this._screenAngleRad,
+      this._measurementQuat
+    );
+    this.quaternion.copy(this._measurementQuat);
     this._touchFallback = false;
   }
 
   recenter() {
     if (this._lastEventAt > 0 && this._lastAlphaDeg != null) {
-      this._yawOffsetRad = readOrientationRadians({
+      this._baselineRad = readOrientationRadians({
         alpha: this._lastAlphaDeg,
         beta: this._lastBetaDeg ?? 0,
         gamma: this._lastGammaDeg ?? 0,
-      }).alpha;
+      });
     } else {
-      this._yawOffsetRad = 0;
+      this._baselineRad = { alpha: 0, beta: 0, gamma: 0 };
     }
     this._dragYaw = 0;
     this._dragPitch = 0;
+    this._displayQuat.identity();
+    this._measurementQuat.identity();
+    this.quaternion.identity();
+    this._snapDisplayQuat = true;
   }
 
   hasRecentSignal(maxAgeMs = SIGNAL_TIMEOUT_MS) {
@@ -211,7 +225,13 @@ export class DeviceOrientationController {
       this.enabled && this._lastEventAt > 0 && !this._touchFallback;
 
     if (useGyro) {
-      object3d.quaternion.copy(this.quaternion);
+      if (this._snapDisplayQuat) {
+        this._displayQuat.copy(this.quaternion);
+        this._snapDisplayQuat = false;
+      } else {
+        this._displayQuat.slerp(this.quaternion, GYRO_SLERP_ALPHA);
+      }
+      object3d.quaternion.copy(this._displayQuat);
       if (this._dragYaw !== 0 || this._dragPitch !== 0) {
         this._extraEuler.set(this._dragPitch, this._dragYaw, 0, 'YXZ');
         this._extraQuat.setFromEuler(this._extraEuler);

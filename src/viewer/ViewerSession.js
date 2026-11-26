@@ -22,8 +22,8 @@ export class ViewerSession {
     this.activeModule = null;
     this.controls =
       options.mode === 'desktop'
-        ? new DesktopControls(this.stereo.domElement)
-        : new DeviceOrientationController(this.stereo.domElement);
+        ? new DesktopControls(container)
+        : new DeviceOrientationController(container);
     this.gaze = new GazeDwellSystem(this.stereo.camera, this.stereo.scene, this.stereo.domElement);
     this.gaze.setOnDwell((mesh) => {
       if (this.activeModule?.onGazeSelect) this.activeModule.onGazeSelect(mesh);
