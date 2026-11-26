@@ -72,7 +72,7 @@ async function openCardboardModule(page, moduleIndex = 0) {
       })
     );
   });
-  await page.getByRole('button', { name: /Cardboard móvil/i }).click();
+  await page.getByRole('button', { name: /Comenzar con Cardboard/i }).click();
   await page.getByRole('button', { name: /Guardar y continuar/i }).click();
   await page.getByRole('button', { name: 'Abrir módulo' }).nth(moduleIndex).click();
   await expect(page.locator('canvas.viewer-canvas')).toBeVisible({ timeout: 15000 });
@@ -231,7 +231,7 @@ test.describe('Detección automática de PPI', () => {
     await page.evaluate(() => localStorage.removeItem('ojo-a-ojo-calibration-v1'));
     await page.reload();
 
-    await page.getByRole('button', { name: /Modo escritorio/i }).click();
+    await page.getByRole('button', { name: /Comenzar con Cardboard/i }).click();
     const card = page.locator('#card-ppi');
     await expect(card).toHaveAttribute('data-ppi-source', 'auto');
     await expect(page.getByTestId('ppi-auto-status')).toContainText(/Detectado automáticamente/i);
@@ -256,7 +256,7 @@ test.describe('Detección automática de PPI', () => {
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('ojo-a-ojo-calibration-v1'));
     await page.reload();
-    await page.getByRole('button', { name: /Cardboard móvil/i }).click();
+    await page.getByRole('button', { name: /Comenzar con Cardboard/i }).click();
 
     const det = await page.evaluate(() => window.__OJO_A_OJO__.getScreenDetection());
     expect(det.metrics.landscapeCssPx).toBe(844);

@@ -12,7 +12,7 @@ const MODULE_META = [
 export function renderModules(root, state, { onNavigate }) {
   let viewer = null;
   const cal = state.calibration;
-  const mode = state.mode || 'desktop';
+  const mode = state.mode || 'cardboard';
 
   const showHub = () => {
     viewer?.dispose();
@@ -22,7 +22,7 @@ export function renderModules(root, state, { onNavigate }) {
       <main class="screen screen--modules">
         <header>
           <h1>Pruebas 3D en el visor</h1>
-          <p class="disclaimer-inline">Tamizaje exploratorio — no diagnóstico clínico.</p>
+          <p class="lead">Coloque el teléfono en el Cardboard y mire al centro del visor para elegir con ~1,5 s de fijación; también puede tocar o pulsar Enter.</p>
           <div class="toolbar">
             <label>Modo vista
               <select id="view-mode">
@@ -31,7 +31,7 @@ export function renderModules(root, state, { onNavigate }) {
                 <option value="2">Monocular (depuración)</option>
               </select>
             </label>
-            ${mode === 'cardboard' ? '<button type="button" class="btn btn--primary" id="countdown">Entrar al visor (3 s)</button>' : ''}
+            <button type="button" class="btn btn--primary" id="countdown">Entrar al visor (3 s)</button>
           </div>
         </header>
         <ol class="module-list">
@@ -84,8 +84,7 @@ export function renderModules(root, state, { onNavigate }) {
   };
 
   const beginModuleFromGesture = (moduleId, seqIndex = null) => {
-    const permissionPromise =
-      mode === 'cardboard' ? DeviceOrientationController.capturePermissionFromGesture() : null;
+    const permissionPromise = DeviceOrientationController.capturePermissionFromGesture();
     if (seqIndex !== null) sequenceIndex = seqIndex;
     void launchModule(moduleId, { permissionPromise });
   };
@@ -100,8 +99,7 @@ export function renderModules(root, state, { onNavigate }) {
           <button type="button" class="btn btn--primary" id="btn-activate-gyro">Tocar para activar giroscopio</button>
         </div>
         <div class="viewer-hud">
-          <p class="disclaimer-inline">Mirada central ~1,5 s · clic/toque/Enter alternativo</p>
-          <button type="button" id="btn-recenter" class="btn btn--ghost btn--sm" hidden>Recentrar</button>
+          <button type="button" id="btn-recenter" class="btn btn--ghost btn--sm">Recentrar</button>
           <button type="button" class="btn btn--ghost" id="exit-viewer">Salir del módulo</button>
         </div>
       </div>
@@ -121,7 +119,6 @@ export function renderModules(root, state, { onNavigate }) {
       viewMode,
       mode,
       onGyroOverlayNeeded: (reason) => {
-        if (mode !== 'cardboard') return;
         overlay.hidden = false;
         overlayMsg.textContent =
           reason === 'permission'
@@ -136,16 +133,13 @@ export function renderModules(root, state, { onNavigate }) {
 
     viewer.stereo.setViewMode(viewMode);
 
-    if (mode === 'cardboard') {
-      btnRecenter.hidden = false;
-      const gyroOpts = {
-        permissionPromise,
-        assumeGranted: Boolean(cal.gyroEnabled),
-      };
-      const activated = await viewer.activateGyro(gyroOpts);
-      if (activated) {
-        overlay.hidden = true;
-      }
+    const gyroOpts = {
+      permissionPromise,
+      assumeGranted: Boolean(cal.gyroEnabled),
+    };
+    const activated = await viewer.activateGyro(gyroOpts);
+    if (activated) {
+      overlay.hidden = true;
     }
 
     btnActivateGyro.onclick = () => {

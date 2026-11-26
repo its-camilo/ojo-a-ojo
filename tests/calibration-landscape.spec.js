@@ -24,7 +24,7 @@ async function openCalibrationLandscape(page, screen) {
   await page.goto('/');
   await page.evaluate(() => localStorage.removeItem('ojo-a-ojo-calibration-v1'));
   await page.reload();
-  await page.getByRole('button', { name: /Cardboard móvil/i }).click();
+  await page.getByRole('button', { name: /Comenzar con Cardboard/i }).click();
   await expect(page.getByRole('heading', { name: /Calibración/i })).toBeVisible();
 }
 

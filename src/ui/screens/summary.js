@@ -39,10 +39,7 @@ export function renderSummary(root, { onNavigate }) {
     <main class="screen screen--summary">
       <header>
         <h1>Resumen de tamizaje</h1>
-        <p class="disclaimer-inline">
-          <strong>Prototipo académico.</strong> Patrón cruzado entre módulos; no constituye diagnóstico médico.
-          Ante indicios, consulte optometría u oftalmología.
-        </p>
+        <p class="lead">Cuatro módulos en un solo vistazo. Exporte los datos JSON o repita la sesión para comparar.</p>
       </header>
       <section class="card">
         <h2>Patrón de los 4 módulos</h2>
@@ -72,7 +69,7 @@ export function renderSummary(root, { onNavigate }) {
   root.querySelector('#btn-repeat').onclick = () => {
     clearSessionResults();
     appState.session = { modules: {}, startedAt: null, finishedAt: null };
-    onNavigate('modules', { mode: 'desktop' });
+    onNavigate('modules', { mode: 'cardboard' });
   };
   root.querySelector('#btn-home').onclick = () => onNavigate('home');
 }

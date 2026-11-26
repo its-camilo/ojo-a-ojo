@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
 import { buildHollowFaceGeometry } from './hollowFaceGeometry.js';
+import { makePlasterTexture } from '../utils/proceduralTextures.js';
+import { enableSharedStereoLayers } from '../utils/stereoLayers.js';
 
 export class Module2HollowMask {
   constructor(stereo, monoRound, onComplete) {
@@ -15,29 +17,66 @@ export class Module2HollowMask {
   }
 
   _buildScene() {
-    const key = new THREE.DirectionalLight(0xfff8f0, 1.5);
-    key.position.set(0.2, 2.8, 2.2);
-    this.group.add(key);
-    const fill = new THREE.DirectionalLight(0xb8d4ff, 0.35);
-    fill.position.set(-1.5, 0.5, 1);
-    this.group.add(fill);
-    this.group.add(new THREE.AmbientLight(0xf0ebe3, 0.55));
+    this.stereo.scene.background = new THREE.Color(0x0a0e14);
 
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(1.6, 48),
+      new THREE.MeshStandardMaterial({ color: 0x161c24, roughness: 0.92, metalness: 0 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set(0, -0.95, -2.4);
+    this.group.add(floor);
+
+    const wall = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.2, 2),
+      new THREE.MeshStandardMaterial({ color: 0x1c242e, roughness: 0.95, side: THREE.DoubleSide })
+    );
+    wall.position.set(0, 0.15, -3.35);
+    this.group.add(wall);
+
+    const key = new THREE.DirectionalLight(0xe8dcd0, 0.78);
+    key.position.set(0.35, 0.95, 0.15);
+    const rim = new THREE.DirectionalLight(0xb8a898, 0.38);
+    rim.position.set(1.5, 0.35, -1.05);
+    const fill = new THREE.DirectionalLight(0x98a8c0, 0.3);
+    fill.position.set(-1.3, 0.2, -0.35);
+    const lowFill = new THREE.PointLight(0xc8b0a0, 0.38, 8);
+    lowFill.position.set(0.12, -0.22, -1.55);
+    this.group.add(
+      key,
+      rim,
+      fill,
+      lowFill,
+      new THREE.AmbientLight(0xb0b8c8, 0.62),
+      new THREE.HemisphereLight(0xe8e0d4, 0x282c34, 0.48)
+    );
+
+    const plasterMap = makePlasterTexture();
+    plasterMap.repeat.set(2, 2);
     const geo = buildHollowFaceGeometry();
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0xf3ece4,
-      roughness: 0.42,
-      metalness: 0.02,
+    const mat = new THREE.MeshLambertMaterial({
+      map: plasterMap,
+      color: 0xcfc6b8,
+      emissive: 0x8a8078,
+      emissiveIntensity: 0.12,
       side: THREE.DoubleSide,
     });
     this.mask = new THREE.Mesh(geo, mat);
-    this.mask.position.set(0, 0.38, -2.45);
-    this.mask.rotation.x = -0.08;
+    this.mask.position.set(0, 0.32, -2.42);
+    this.mask.rotation.x = -0.06;
     this.group.add(this.mask);
+
+    const plinth = new THREE.Mesh(
+      new THREE.BoxGeometry(0.35, 0.9, 0.35),
+      new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 0.65, metalness: 0.1 })
+    );
+    plinth.position.set(0, -0.5, -2.55);
+    this.group.add(plinth);
 
     this.ui = new THREE.Group();
     this._promptButtons();
     this.group.add(this.ui);
+    enableSharedStereoLayers(this.group);
 
     this.stereo.setMono(this.phase === 'mono');
   }
@@ -69,9 +108,8 @@ export class Module2HollowMask {
       'La máscara hueca suele percibirse convexa sin disparidad (Gregory, 1970; Hill y Bruce, 1993). Si en estéreo reporta concavidad o cambia el juicio, puede haber uso de disparidad binocular.';
     if (mono === 'convex' && stereo === 'concave') {
       interpretation +=
-        ' Patrón observado: ilusión más fuerte en monocular; estereopsis ayudó a desambiguar a corta distancia (Hill y Bruce, 1993).';
+        ' Patrón observado: ilusión más fuerte en monocular; estereopsis ayudó a desambiguar a corta distancia.';
     }
-    interpretation += ' Resultado exploratorio, no diagnóstico clínico.';
 
     this.onComplete({
       moduleId: 'hollow-mask',
@@ -83,6 +121,8 @@ export class Module2HollowMask {
   }
 
   mount() {
+    this.stereo.scene.background = new THREE.Color(0x0a0e14);
+    this.stereo.scene.environment = null;
     this.stereo.addToScene(this.group);
   }
 

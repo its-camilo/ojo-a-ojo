@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
-/** Máscara facial cóncava (interior del rostro hacia el observador). */
+/** Máscara facial esculpida de alta resolución (interior cóncavo hacia el observador). */
 export function buildHollowFaceGeometry() {
-  const geo = new THREE.SphereGeometry(0.72, 80, 64, 0, Math.PI * 2, 0.15 * Math.PI, 0.72 * Math.PI);
+  const geo = new THREE.SphereGeometry(0.78, 96, 80, 0, Math.PI * 2, 0.12 * Math.PI, 0.78 * Math.PI);
   const pos = geo.attributes.position;
 
   for (let i = 0; i < pos.count; i++) {
@@ -10,37 +10,49 @@ export function buildHollowFaceGeometry() {
     let y = pos.getY(i);
     let z = pos.getZ(i);
 
-    x *= 0.82;
-    y *= 1.08;
-    z *= 0.68;
+    x *= 0.84;
+    y *= 1.12;
+    z *= 0.62;
 
-  const u = x / 0.72;
-    const v = y / 0.72;
+    const u = x / 0.78;
+    const v = y / 0.78;
 
-    const eyeL = Math.hypot(u + 0.34, v - 0.18);
-    const eyeR = Math.hypot(u - 0.34, v - 0.18);
+    const eyeL = Math.hypot(u + 0.36, v - 0.2);
+    const eyeR = Math.hypot(u - 0.36, v - 0.2);
     let depth = z;
 
-    if (eyeL < 0.2) depth += 0.14 * (1 - eyeL / 0.2);
-    if (eyeR < 0.2) depth += 0.14 * (1 - eyeR / 0.2);
+    if (eyeL < 0.19) depth += 0.16 * (1 - eyeL / 0.19);
+    if (eyeR < 0.19) depth += 0.16 * (1 - eyeR / 0.19);
 
-    const brow = Math.exp(-((u * u) / 0.35 + ((v - 0.32) ** 2) / 0.02)) * 0.06;
-    depth += brow;
+    const browArc = Math.exp(-((u * u) / 0.28 + ((v - 0.34) ** 2) / 0.018)) * 0.09;
+    depth += browArc;
+    const browL = Math.exp(-(((u + 0.22) ** 2) / 0.04 + ((v - 0.28) ** 2) / 0.025)) * 0.05;
+    const browR = Math.exp(-(((u - 0.22) ** 2) / 0.04 + ((v - 0.28) ** 2) / 0.025)) * 0.05;
+    depth += browL + browR;
 
-    const nose = Math.hypot(u * 0.9, v + 0.02);
-    if (nose < 0.14) depth -= 0.11 * (1 - nose / 0.14);
+    const noseBridge = Math.exp(-((u * u) / 0.012 + ((v + 0.05) ** 2) / 0.08)) * -0.04;
+    const noseTip = Math.hypot(u * 0.85, v + 0.12);
+    if (noseTip < 0.13) depth -= 0.14 * (1 - noseTip / 0.13);
+    depth += noseBridge;
 
-    const cheekL = Math.hypot(u + 0.42, v + 0.08);
-    const cheekR = Math.hypot(u - 0.42, v + 0.08);
-    if (cheekL < 0.22) depth += 0.05 * (1 - cheekL / 0.22);
-    if (cheekR < 0.22) depth += 0.05 * (1 - cheekR / 0.22);
+    const cheekL = Math.hypot(u + 0.44, v + 0.06);
+    const cheekR = Math.hypot(u - 0.44, v + 0.06);
+    if (cheekL < 0.24) depth += 0.06 * (1 - cheekL / 0.24);
+    if (cheekR < 0.24) depth += 0.06 * (1 - cheekR / 0.24);
 
-    const mouthY = -0.28;
-    const mouth = Math.exp(-((u * u) / 0.08 + ((v - mouthY) ** 2) / 0.012)) * 0.08;
-    depth += mouth;
+    const lipY = -0.3;
+    const lips = Math.exp(-((u * u) / 0.09 + ((v - lipY) ** 2) / 0.014)) * 0.1;
+    depth += lips;
 
-    const chin = Math.exp(-((u * u) / 0.06 + ((v + 0.48) ** 2) / 0.02)) * 0.07;
+    const philtrum = Math.exp(-((u * u) / 0.004 + ((v + 0.08) ** 2) / 0.02)) * -0.03;
+    depth += philtrum;
+
+    const chin = Math.exp(-((u * u) / 0.07 + ((v + 0.52) ** 2) / 0.022)) * 0.08;
     depth += chin;
+
+    const templeL = Math.exp(-(((u + 0.55) ** 2) / 0.05 + ((v - 0.1) ** 2) / 0.12)) * 0.03;
+    const templeR = Math.exp(-(((u - 0.55) ** 2) / 0.05 + ((v - 0.1) ** 2) / 0.12)) * 0.03;
+    depth += templeL + templeR;
 
     pos.setXYZ(i, x, y, depth);
   }

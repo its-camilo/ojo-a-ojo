@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { StereoRenderer } from './StereoRenderer.js';
 import { GazeDwellSystem } from './GazeDwell.js';
-import { DesktopControls } from './DesktopControls.js';
 import { DeviceOrientationController } from './DeviceOrientation.js';
 import { Module1Balance } from '../modules/Module1Balance.js';
 import { Module2HollowMask } from '../modules/Module2HollowMask.js';
@@ -16,15 +15,15 @@ export class ViewerSession {
   constructor(container, options) {
     this.container = container;
     this.options = options;
+    const mode = options.mode === 'desktop' ? 'cardboard' : options.mode || 'cardboard';
+    this.options.mode = mode;
+
     this.stereo = new StereoRenderer(container, options.calibration, {
       viewMode: options.viewMode,
-      mode: options.mode,
+      mode,
     });
     this.activeModule = null;
-    this.controls =
-      options.mode === 'desktop'
-        ? new DesktopControls(container)
-        : new DeviceOrientationController(container);
+    this.controls = new DeviceOrientationController(container);
     this.gaze = new GazeDwellSystem(this.stereo.camera, this.stereo.scene, this.stereo.domElement);
     this.gaze.setOnDwell((mesh) => {
       if (this.activeModule?.onGazeSelect) this.activeModule.onGazeSelect(mesh);
@@ -41,7 +40,6 @@ export class ViewerSession {
    * @param {{ permissionPromise?: Promise<string>|null, assumeGranted?: boolean }} gyroOpts
    */
   async activateGyro(gyroOpts = {}) {
-    if (this.options.mode === 'desktop') return true;
     if (!(this.controls instanceof DeviceOrientationController)) return true;
 
     const ok = await this.controls.activate(gyroOpts);
@@ -51,6 +49,7 @@ export class ViewerSession {
       this._scheduleGyroSignalCheck();
     } else {
       this.onGyroOverlayNeeded?.('permission');
+      this.controls.enableTouchFallback();
     }
     return ok;
   }
@@ -94,6 +93,8 @@ export class ViewerSession {
       default:
         return;
     }
+    this.stereo.scene.environment = null;
+    this.stereo.renderer.toneMappingExposure = 0.92;
     this.activeModule.mount();
     if (this.controls instanceof DeviceOrientationController) {
       requestAnimationFrame(() => this.controls.recenter());
