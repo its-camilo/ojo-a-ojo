@@ -131,6 +131,9 @@ Estos papers son de **terapia**, no de tamizaje. Se citan solo para no confundir
 - **Ittelson, W. H. (1952).** *The Ames demonstrations in perception: A guide to their construction and use.* Princeton University Press.  
   Guía clásica de construcción de las demostraciones de Ames (cuarto trapezoidal que, desde un punto de vista fijo, proyecta como una habitación rectangular). Verificada por citación académica consistente (p. ej. en discusiones posteriores de la ilusión de tamaño-distancia). No tiene DOI de artículo.
 
+- **Sawada, T. (2024).** Projective collineation formulation of the Ames room (preprint). OSF. https://doi.org/10.31234/osf.io/y9bvs  
+  **Aporte para Ojo a Ojo:** formalización con transformación $X' = E + (X-E)/(1 + w\cdot(X-E))$ que preserva alineación de líneas y planos; el módulo 3D aplica esa colineación a una habitación rectangular canónica y texturas procedimentales en coordenadas arquitectónicas ($aArch$).
+
 - **Gehringer, W. L., & Engel, E. (1986).** Effect of ecological viewing conditions on the Ames' distorted room illusion. *Journal of Experimental Psychology: Human Perception and Performance, 12*(2), 181–185. https://doi.org/10.1037/0096-1523.12.2.181 · PMID 2940322  
   **Aporte:** Gibson había afirmado que la ilusión se elimina con visión binocular y/o movimiento de cabeza. Con 144 observadores, visión mono/binocular y cabeza fija/libre, **la ilusión disminuyó al aumentar el acceso visual, pero persistió en todas las condiciones**.  
   **Para Cardboard 3DoF:** el visor aporta disparidad binocular, pero **no** tracking de traslación (el paralaje de movimiento de Gehringer queda fuera). Es un test razonablemente limpio de “¿basta la estereopsis para romper o atenuar la ilusión de escala del cuarto?”, sin la confusión del 6DoF.
