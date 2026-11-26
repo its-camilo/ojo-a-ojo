@@ -3,12 +3,12 @@ import * as THREE from 'three';
 /** Mirilla / observador E (m) y vector w para colineación (Sawada 2024; Ittelson 1952). */
 export const AMES_EYE = new THREE.Vector3(0, 0, 0);
 /** Signo negativo: esquina izquierda del fondo queda físicamente más cercana a E (figura más grande en pantalla). */
-export const AMES_W = new THREE.Vector3(-0.21, 0, 0);
+export const AMES_W = new THREE.Vector3(-0.22, 0, 0);
 
 export const AMES_ROOM = {
   width: 4.6,
   height: 2.9,
-  zNear: -1.5,
+  zNear: -1.8,
   zFar: -5.4,
   floorY: -1.55,
   get ceilY() {
