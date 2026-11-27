@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { LAYER_BOTH } from './StereoRenderer.js';
-import { applyHighQualityTexture } from './renderQuality.js';
+import { applyHighQualityTexture, getMaxAnisotropy } from './renderQuality.js';
 
-const CANVAS_W = 1024;
-const CANVAS_H = 320;
+const CANVAS_W = 2048;
+const CANVAS_H = 640;
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
@@ -21,14 +21,14 @@ function drawLabelTexture(label, renderer = null) {
   canvas.height = CANVAS_H;
   const ctx = canvas.getContext('2d');
 
-  const pad = 20;
-  const rx = 14;
+  const pad = 26;
+  const rx = 18;
   ctx.fillStyle = '#1b2d47';
   roundRect(ctx, pad / 2, pad / 2, CANVAS_W - pad, CANVAS_H - pad, rx);
   ctx.fill();
 
   ctx.strokeStyle = '#68b5eb';
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 6;
   roundRect(ctx, pad / 2, pad / 2, CANVAS_W - pad, CANVAS_H - pad, rx);
   ctx.stroke();
 
@@ -40,27 +40,27 @@ function drawLabelTexture(label, renderer = null) {
   const secondary = lines.slice(1).join(' ');
 
   const maxW = CANVAS_W - pad * 4;
-  let titleSize = primary.length > 22 ? 52 : primary.length > 16 ? 58 : 64;
-  let subSize = secondary ? 38 : 0;
+  let titleSize = primary.length > 22 ? 66 : primary.length > 16 ? 72 : 80;
+  let subSize = secondary ? 52 : 0;
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#ffffff';
   ctx.font = `700 ${titleSize}px "DM Sans", system-ui, sans-serif`;
-  while (titleSize > 34 && ctx.measureText(primary).width > maxW) {
+  while (titleSize > 42 && ctx.measureText(primary).width > maxW) {
     titleSize -= 2;
     ctx.font = `700 ${titleSize}px "DM Sans", system-ui, sans-serif`;
   }
 
   if (secondary) {
-    ctx.font = `500 ${subSize}px "DM Sans", system-ui, sans-serif`;
-    while (subSize > 26 && ctx.measureText(secondary).width > maxW) {
+    ctx.font = `600 ${subSize}px "DM Sans", system-ui, sans-serif`;
+    while (subSize > 34 && ctx.measureText(secondary).width > maxW) {
       subSize -= 2;
-      ctx.font = `500 ${subSize}px "DM Sans", system-ui, sans-serif`;
+      ctx.font = `600 ${subSize}px "DM Sans", system-ui, sans-serif`;
     }
   }
 
-  const lineGap = 10;
+  const lineGap = 14;
   const blockH = titleSize + (secondary ? subSize + lineGap : 0);
   const cy = CANVAS_H / 2;
   const titleY = secondary ? cy - blockH / 2 + titleSize / 2 : cy;
@@ -70,8 +70,8 @@ function drawLabelTexture(label, renderer = null) {
   ctx.fillText(primary, CANVAS_W / 2, titleY);
 
   if (secondary) {
-    ctx.font = `500 ${subSize}px "DM Sans", system-ui, sans-serif`;
-    ctx.fillStyle = '#c8dcf5';
+    ctx.font = `600 ${subSize}px "DM Sans", system-ui, sans-serif`;
+    ctx.fillStyle = '#d4e8ff';
     ctx.fillText(secondary, CANVAS_W / 2, titleY + titleSize / 2 + lineGap + subSize / 2);
   }
 
@@ -79,12 +79,15 @@ function drawLabelTexture(label, renderer = null) {
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.flipY = true;
   applyHighQualityTexture(tex, renderer);
+  if (!renderer) {
+    tex.anisotropy = getMaxAnisotropy();
+  }
   return tex;
 }
 
 export function createGazeButton(label, position, onSelect, options = {}) {
-  const width = options.width ?? 1.02;
-  const height = options.height ?? 0.34;
+  const width = options.width ?? 1.16;
+  const height = options.height ?? 0.39;
   const tex = drawLabelTexture(label, options.renderer ?? null);
 
   const geo = new THREE.PlaneGeometry(width, height);

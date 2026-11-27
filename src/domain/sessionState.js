@@ -1,4 +1,9 @@
-import { loadCalibration, loadSessionResults, saveSessionResults } from '../services/storage.js';
+import {
+  loadCalibration,
+  loadSessionResults,
+  normalizeSessionShape,
+  saveSessionResults,
+} from '../services/storage.js';
 
 const listeners = new Set();
 
@@ -9,11 +14,13 @@ export const appState = {
   viewMode: 0,
   monoRound: false,
   moduleIndex: null,
-  session: loadSessionResults() || {
-    modules: {},
-    startedAt: null,
-    finishedAt: null,
-  },
+  session: normalizeSessionShape(
+    loadSessionResults() || {
+      modules: {},
+      startedAt: null,
+      finishedAt: null,
+    }
+  ),
   viewerActive: false,
 };
 
@@ -27,13 +34,27 @@ export function subscribe(fn) {
   return () => listeners.delete(fn);
 }
 
+export function mergeSessionFromPersistence() {
+  const stored = loadSessionResults();
+  const storedMods = stored?.modules ?? {};
+  const memoryMods = appState.session?.modules ?? {};
+  appState.session = normalizeSessionShape({
+    ...stored,
+    ...appState.session,
+    modules: { ...storedMods, ...memoryMods },
+  });
+  return appState.session;
+}
+
 export function recordModuleResult(moduleId, payload) {
+  mergeSessionFromPersistence();
   appState.session.modules[moduleId] = {
     ...payload,
     recordedAt: new Date().toISOString(),
   };
   if (!appState.session.startedAt) {
-    appState.session.startedAt = new Date().toISOString();
+    appState.session.startedAt =
+      loadSessionResults()?.startedAt ?? new Date().toISOString();
   }
   saveSessionResults(appState.session);
 }

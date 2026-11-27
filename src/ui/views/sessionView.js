@@ -1,6 +1,6 @@
 import { ViewerSession, MODULE_IDS } from '../../rendering/ViewerSession.js';
 import { DeviceOrientationController } from '../../services/deviceOrientation.js';
-import { setState } from '../../domain/sessionState.js';
+import { mergeSessionFromPersistence, setState } from '../../domain/sessionState.js';
 
 const MODULE_META = [
   { id: 'balance', n: 1, title: 'Balance dicóptico 3D', desc: 'Supresión / dominancia (Martín et al., 2020)' },
@@ -11,13 +11,19 @@ const MODULE_META = [
 
 export function renderSession(root, state, { onNavigate }) {
   let viewer = null;
+  let sequenceIndex = null;
   const cal = state.calibration;
   const mode = state.mode || 'cardboard';
 
-  const showHub = () => {
+  const disposeViewer = () => {
+    sequenceIndex = null;
     viewer?.dispose();
     viewer = null;
     setState({ viewerActive: false });
+  };
+
+  const showHub = () => {
+    disposeViewer();
     root.innerHTML = `
       <main class="screen screen--modules">
         <header>
@@ -71,11 +77,11 @@ export function renderSession(root, state, { onNavigate }) {
     });
   };
 
-  let sequenceIndex = null;
-
   const runSequence = (index = 0) => {
     sequenceIndex = index;
     if (index >= MODULE_IDS.length) {
+      mergeSessionFromPersistence();
+      disposeViewer();
       sequenceIndex = null;
       onNavigate('summary');
       return;
@@ -86,6 +92,7 @@ export function renderSession(root, state, { onNavigate }) {
   const beginModuleFromGesture = (moduleId, seqIndex = null) => {
     const permissionPromise = DeviceOrientationController.capturePermissionFromGesture();
     if (seqIndex !== null) sequenceIndex = seqIndex;
+    else sequenceIndex = null;
     void launchModule(moduleId, { permissionPromise });
   };
 
@@ -174,4 +181,6 @@ export function renderSession(root, state, { onNavigate }) {
   };
 
   showHub();
+
+  return disposeViewer;
 }

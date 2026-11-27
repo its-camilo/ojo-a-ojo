@@ -1,5 +1,5 @@
-import { appState, finishSession } from '../../domain/sessionState.js';
-import { clearSessionResults, loadSessionResults } from '../../services/storage.js';
+import { appState, finishSession, mergeSessionFromPersistence } from '../../domain/sessionState.js';
+import { clearSessionResults } from '../../services/storage.js';
 
 export const MODULE_LABELS = {
   balance: 'Balance dicóptico 3D',
@@ -22,14 +22,7 @@ const MODULE_BRIEF = {
 };
 
 export function renderSummary(root, { onNavigate }) {
-  const stored = loadSessionResults();
-  if (stored?.modules) {
-    appState.session = {
-      ...appState.session,
-      ...stored,
-      modules: { ...appState.session.modules, ...stored.modules },
-    };
-  }
+  mergeSessionFromPersistence();
   finishSession();
   const mods = appState.session.modules || {};
   const overall = buildOverallNarrative(mods);

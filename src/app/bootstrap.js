@@ -15,6 +15,7 @@ import { createRouter, pathToScreen, screenToPath } from './router.js';
 export function startApp() {
   const appRoot = document.getElementById('app');
   if (!appRoot) return;
+  let disposeSessionView = null;
 
   const render = () => {
     const nav = { onNavigate };
@@ -22,16 +23,23 @@ export function startApp() {
 
     switch (appState.screen) {
       case 'calibration':
+        disposeSessionView?.();
+        disposeSessionView = null;
         renderCalibration(appRoot, appState, nav);
         break;
       case 'modules':
-        renderSession(appRoot, appState, nav);
+        disposeSessionView?.();
+        disposeSessionView = renderSession(appRoot, appState, nav);
         break;
       case 'summary':
+        disposeSessionView?.();
+        disposeSessionView = null;
         renderSummary(appRoot, nav);
         break;
       case 'home':
       default:
+        disposeSessionView?.();
+        disposeSessionView = null;
         renderHome(appRoot, nav);
         break;
     }

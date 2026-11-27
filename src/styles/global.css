@@ -27,7 +27,7 @@ body {
   color: var(--lab-text);
   font-family: var(--font-sans);
   line-height: 1.55;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .app-shell {
@@ -46,7 +46,7 @@ h1 {
 }
 
 .lead {
-  font-size: 1.05rem;
+  font-size: 1.18rem;
   color: var(--lab-muted);
   max-width: 42ch;
   margin-top: 0.5rem;
@@ -64,7 +64,7 @@ h1 {
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
-  font-size: 1rem;
+  font-size: 1.12rem;
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
@@ -131,11 +131,11 @@ h1 {
 .field output,
 .mono-readout {
   font-family: var(--font-mono);
-  font-size: 0.92rem;
+  font-size: 1.03rem;
 }
 
 .hint {
-  font-size: 0.88rem;
+  font-size: 0.99rem;
   color: var(--lab-muted);
 }
 

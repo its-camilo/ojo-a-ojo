@@ -72,19 +72,19 @@
 }
 
 .module-card h2 {
-  font-size: 1.05rem;
+  font-size: 1.18rem;
   margin: 0 0 0.35rem;
 }
 
 .module-card p {
   margin: 0 0 0.75rem;
   color: var(--lab-muted);
-  font-size: 0.92rem;
+  font-size: 1.03rem;
 }
 
 .summary-global {
   margin: 0.75rem 0 0;
-  font-size: 0.95rem;
+  font-size: 1.06rem;
   line-height: 1.5;
   color: var(--lab-text);
 }
@@ -106,13 +106,13 @@
 
 .summary-module-card h3 {
   margin: 0 0 0.5rem;
-  font-size: 1.05rem;
+  font-size: 1.18rem;
 }
 
 .summary-module-card__purpose,
 .summary-module-card__interp {
   margin: 0.45rem 0 0;
-  font-size: 0.9rem;
+  font-size: 1.01rem;
   line-height: 1.5;
   color: var(--lab-muted);
 }
@@ -142,7 +142,7 @@
 
 .metrics-cell {
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   line-height: 1.45;
   color: #c5d5e8;
 }
@@ -164,12 +164,12 @@
 .cross-cell span {
   display: block;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1.01rem;
 }
 
 .cross-cell small {
   color: var(--lab-muted);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 
 .cross-cell--ok {
@@ -190,7 +190,7 @@
 }
 
 .toolbar label {
-  font-size: 0.9rem;
+  font-size: 1.01rem;
   color: var(--lab-muted);
 }
 
