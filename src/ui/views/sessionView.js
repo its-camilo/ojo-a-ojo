@@ -1,6 +1,6 @@
 import { ViewerSession, MODULE_IDS } from '../../rendering/ViewerSession.js';
 import { DeviceOrientationController } from '../../services/deviceOrientation.js';
-import { mergeSessionFromPersistence, setState } from '../../domain/sessionState.js';
+import { appState, mergeSessionFromPersistence, setState } from '../../domain/sessionState.js';
 
 const MODULE_META = [
   { id: 'balance', n: 1, title: 'Balance dicóptico 3D', desc: 'Supresión / dominancia (Martín et al., 2020)' },
@@ -24,6 +24,8 @@ export function renderSession(root, state, { onNavigate }) {
 
   const showHub = () => {
     disposeViewer();
+    mergeSessionFromPersistence();
+    const savedMods = appState.session?.modules ?? {};
     root.innerHTML = `
       <main class="screen screen--modules">
         <header>
@@ -43,8 +45,10 @@ export function renderSession(root, state, { onNavigate }) {
         <ol class="module-list">
           ${MODULE_META.map(
             (m) => `
-            <li class="card module-card">
-              <h2>Módulo ${m.n}: ${m.title}</h2>
+            <li class="card module-card${savedMods[m.id] ? ' module-card--saved' : ''}">
+              <h2>Módulo ${m.n}: ${m.title}
+                ${savedMods[m.id] ? `<span class="module-saved-badge" data-testid="module-saved-${m.id}">✓ Registrado</span>` : ''}
+              </h2>
               <p>${m.desc}</p>
               <button type="button" class="btn btn--primary" data-module="${m.id}">Abrir módulo</button>
             </li>`

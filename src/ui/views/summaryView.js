@@ -10,6 +10,36 @@ export const MODULE_LABELS = {
 
 const MODULE_ORDER = ['balance', 'hollow-mask', 'ames', 'rds'];
 
+function hasModuleRecord(m, id) {
+  if (!m) return false;
+  switch (id) {
+    case 'balance':
+      return m.imbalanceRatio != null || m.valid != null;
+    case 'hollow-mask':
+      return Boolean(m.monoPercept || m.stereoPercept);
+    case 'ames':
+      return Boolean(m.monoJudgment || m.stereoJudgment);
+    case 'rds':
+      return Boolean(m.monoDepth || m.stereoDepth);
+    default:
+      return false;
+  }
+}
+
+function isStereoComplete(m, id) {
+  if (!m) return false;
+  switch (id) {
+    case 'hollow-mask':
+      return Boolean(m.stereoPercept);
+    case 'ames':
+      return Boolean(m.stereoJudgment);
+    case 'rds':
+      return Boolean(m.stereoDepth);
+    default:
+      return true;
+  }
+}
+
 const MODULE_BRIEF = {
   balance:
     'Compara qué tan claros ves los objetos de cada ojo cuando cada mitad de pantalla va a un ojo distinto.',
@@ -30,19 +60,25 @@ export function renderSummary(root, { onNavigate }) {
   const cards = MODULE_ORDER.map((id) => {
     const m = mods[id];
     const title = MODULE_LABELS[id];
-    if (!m) {
+    if (!hasModuleRecord(m, id)) {
       return `<article class="summary-module-card summary-module-card--pending" data-testid="summary-card-${id}">
         <h3>${title}</h3>
         <p class="summary-module-card__purpose">${MODULE_BRIEF[id]}</p>
         <p><em>No realizado en esta sesión.</em></p>
       </article>`;
     }
+    const partial = Boolean(m.partial) || !isStereoComplete(m, id);
+    const partialNote = partial
+      ? '<p class="summary-partial-note"><em>Ronda 2/2 (Dos ojos) pendiente — registrado solo 1/2 Un ojo.</em></p>'
+      : '';
     const metrics = formatMetricsHuman(id, m);
     const plain = explainResultPlain(id, m);
-    return `<article class="summary-module-card" data-testid="summary-card-${id}">
+  const partialClass = partial ? ' summary-module-card--partial' : '';
+    return `<article class="summary-module-card${partialClass}" data-testid="summary-card-${id}">
       <h3>${title}</h3>
       <p class="summary-module-card__purpose"><strong>Qué evaluó:</strong> ${MODULE_BRIEF[id]}</p>
       <p class="metrics-cell" data-testid="summary-metrics-${id}"><strong>Tu resultado:</strong> ${escapeHtml(metrics)}</p>
+      ${partialNote}
       <p class="summary-module-card__interp"><strong>Cómo leerlo:</strong> ${escapeHtml(plain)}</p>
     </article>`;
   }).join('');
@@ -97,12 +133,16 @@ function buildOverallNarrative(mods) {
     else if (hm.monoPercept === 'convex' && hm.stereoPercept === 'convex') {
       parts.push('La máscara hueca mantuvo aspecto convexa (patrón habitual de la ilusión).');
     }
+  } else if (hm?.monoPercept) {
+    parts.push('Máscara hueca: solo ronda 1/2 (Un ojo) guardada; falta Dos ojos.');
   }
   const ames = mods.ames;
   if (ames?.stereoJudgment) {
     if (ames.monoJudgment && ames.monoJudgment !== ames.stereoJudgment) {
       parts.push('El Cuarto de Ames cambió entre visión con un ojo y con ambos (pista de corrección estéreo).');
     }
+  } else if (ames?.monoJudgment) {
+    parts.push('Cuarto de Ames: solo ronda 1/2 registrada.');
   }
   const rds = mods.rds;
   if (rds?.stereoDepth) {
@@ -111,6 +151,8 @@ function buildOverallNarrative(mods) {
     } else if (rds.stereoDepth === 'none') {
       parts.push('En RDS 3D no logró ver la figura en relieve con ambos ojos.');
     }
+  } else if (rds?.monoDepth) {
+    parts.push('RDS: solo ronda 1/2 (Un ojo) guardada.');
   }
   if (parts.length === 0) {
     return 'Complete los cuatro módulos en el visor para obtener un resumen global en lenguaje sencillo.';
@@ -156,6 +198,9 @@ function explainResultPlain(id, m) {
       return balanceCardInterpretation(ir);
     }
     case 'hollow-mask': {
+      if (m.partial || !m.stereoPercept) {
+        return `Monocular (1/2): ${labelPercept(m.monoPercept)} · Estéreo (2/2): pendiente`;
+      }
       const mono = labelPercept(m.monoPercept);
       const stereo = labelPercept(m.stereoPercept);
       if (mono === 'convexa' && stereo === 'cóncava') {
@@ -167,6 +212,9 @@ function explainResultPlain(id, m) {
       return `Monocular: ${mono}; estéreo: ${stereo}. Compare si cambió al fusionar ambos ojos.`;
     }
     case 'ames': {
+      if (m.partial || !m.stereoJudgment) {
+        return `Monocular (1/2): ${labelJudge(m.monoJudgment)} · Estéreo (2/2): pendiente`;
+      }
       const mono = labelJudge(m.monoJudgment);
       const stereo = labelJudge(m.stereoJudgment);
       if (mono !== stereo) {
@@ -201,14 +249,23 @@ function formatMetricsHuman(id, m) {
     case 'balance':
       return `Razón de balance: ${fmtNum(m.imbalanceRatio)} (${m.trials ?? '—'} ensayos, ${m.reversals ?? '—'} reversiones)`;
     case 'hollow-mask':
+      if (!m.stereoPercept) {
+        return `Monocular: ${labelPercept(m.monoPercept)} · Estéreo: pendiente (complete 2/2 Dos ojos)`;
+      }
       return `Monocular: ${labelPercept(m.monoPercept)} · Estéreo: ${labelPercept(m.stereoPercept)}`;
     case 'ames':
+      if (!m.stereoJudgment) {
+        return `Monocular: ${labelJudge(m.monoJudgment)} · Estéreo: pendiente (complete 2/2 Dos ojos)`;
+      }
       return `Monocular: ${labelJudge(m.monoJudgment)} · Estéreo: ${labelJudge(m.stereoJudgment)}`;
     case 'rds': {
       const arc =
         typeof m.disparityArcsec === 'number' && Number.isFinite(m.disparityArcsec)
           ? Math.round(m.disparityArcsec)
           : '—';
+      if (m.partial || !m.stereoDepth) {
+        return `Disparidad: ${m.disparityPx ?? '—'} px · Mono (1/2): ${labelDepth(m.monoDepth)} · Estéreo (2/2): pendiente`;
+      }
       return `Disparidad: ${m.disparityPx ?? '—'} px (~${arc}″) · Mono: ${labelDepth(m.monoDepth)} · Estéreo: ${labelDepth(m.stereoDepth)}`;
     }
     default:
@@ -244,38 +301,33 @@ function escapeHtml(s) {
 }
 
 function drawCrossPattern(el, mods) {
-  const items = [
-    {
-      id: 'balance',
-      label: MODULE_LABELS.balance,
-      ok: mods.balance && (mods.balance.imbalanceRatio != null || mods.balance.valid != null),
-    },
-    {
-      id: 'hollow-mask',
-      label: MODULE_LABELS['hollow-mask'],
-      ok: Boolean(mods['hollow-mask']?.stereoPercept || mods['hollow-mask']?.monoPercept),
-    },
-    {
-      id: 'ames',
-      label: MODULE_LABELS.ames,
-      ok: Boolean(mods.ames?.stereoJudgment),
-    },
-    {
-      id: 'rds',
-      label: MODULE_LABELS.rds,
-      ok: Boolean(mods.rds?.stereoDepth),
-    },
-  ];
+  const items = MODULE_ORDER.map((id) => {
+    const m = mods[id];
+    const recorded = hasModuleRecord(m, id);
+    const full = recorded && isStereoComplete(m, id);
+    return {
+      id,
+      label: MODULE_LABELS[id],
+      recorded,
+      full,
+    };
+  });
   el.innerHTML = `
     <h2>Patrón entre pruebas</h2>
     <div class="cross-grid">
       ${items
-        .map(
-          (i) => `<div class="cross-cell ${i.ok ? 'cross-cell--ok' : 'cross-cell--pending'}">
+        .map((i) => {
+          const cls = i.full ? 'cross-cell--ok' : i.recorded ? 'cross-cell--partial' : 'cross-cell--pending';
+          const note = i.full
+            ? 'dato registrado'
+            : i.recorded
+              ? 'solo ronda 1/2 — falta Dos ojos'
+              : 'pendiente / sin fusión';
+          return `<div class="cross-cell ${cls}">
             <span>${i.label}</span>
-            <small>${i.ok ? 'dato registrado' : 'pendiente / sin fusión'}</small>
-          </div>`
-        )
+            <small>${note}</small>
+          </div>`;
+        })
         .join('')}
     </div>
     <p class="hint">Mire el conjunto: por ejemplo, dificultad en RDS y desequilibrio marcado en balance pueden ir de la mano. No decida solo con una prueba.</p>

@@ -71,6 +71,32 @@
   margin-bottom: 0;
 }
 
+.module-card--saved {
+  border-color: #2d6b4a;
+}
+
+.module-saved-badge {
+  display: inline-block;
+  margin-left: 0.45rem;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: #9fd4b0;
+  border: 1px solid #2d6b4a;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.summary-module-card--partial {
+  border-color: #5a6d88;
+}
+
+.summary-partial-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  color: #a8c4e0;
+}
+
 .module-card h2 {
   font-size: 1.18rem;
   margin: 0 0 0.35rem;
@@ -179,6 +205,11 @@
 
 .cross-cell--pending {
   border-color: #3d4f6a;
+}
+
+.cross-cell--partial {
+  border-color: #5a6d88;
+  background: #151e2c;
 }
 
 .toolbar {

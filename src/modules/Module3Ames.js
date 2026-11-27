@@ -4,6 +4,7 @@ import { clearGroup } from './clearGroup.js';
 import { enableSharedStereoLayers } from '../rendering/stereoLayers.js';
 import { buildCollineatedRoom, syncRoomWorldUniforms } from './amesBuild.js';
 import { disposeObject3D } from '../rendering/sceneDispose.js';
+import { recordModuleResult } from '../domain/sessionState.js';
 
 export class Module3Ames {
   constructor(stereo, monoRound, onComplete) {
@@ -27,28 +28,44 @@ export class Module3Ames {
     this.stereo.setMono(this.phase === 'mono');
   }
 
+  _roundTag() {
+    return this.phase === 'mono' ? '1/2 Un ojo' : '2/2 Dos ojos';
+  }
+
   _buildPromptButtons() {
     clearGroup(this.ui);
-    const phase = this.phase === 'mono' ? 'Un ojo' : 'Dos ojos';
+    const round = this._roundTag();
     createButtonRow([
       {
-        label: `Izquierda más grande\n(${phase} · figura roja)`,
+        label: `Izquierda\n(${round} · fig. roja)`,
         onSelect: () => this._answer('left'),
       },
       {
-        label: `Derecha más grande\n(${phase} · figura azul)`,
+        label: `Derecha\n(${round} · fig. azul)`,
         onSelect: () => this._answer('right'),
       },
       {
-        label: `Mismo tamaño\n(${phase} · se ven iguales)`,
+        label: `Iguales\n(${round} · mismo tamaño)`,
         onSelect: () => this._answer('equal'),
       },
     ], { preset: 'ames' }).forEach((b) => this.ui.add(b));
   }
 
+  _saveMonoPartial() {
+    recordModuleResult('ames', {
+      moduleId: 'ames',
+      title: 'Cuarto de Ames 3D',
+      monoJudgment: this.monoAnswer,
+      stereoJudgment: null,
+      partial: true,
+      completedRounds: ['mono'],
+    });
+  }
+
   _answer(choice) {
     if (this.phase === 'mono') {
       this.monoAnswer = choice;
+      this._saveMonoPartial();
       this.phase = 'stereo';
       this.stereo.setMono(false);
       this._buildPromptButtons();
@@ -66,6 +83,8 @@ export class Module3Ames {
       title: 'Cuarto de Ames 3D',
       monoJudgment: this.monoAnswer ?? stereoChoice,
       stereoJudgment: stereoChoice,
+      partial: false,
+      completedRounds: ['mono', 'stereo'],
       interpretation,
     });
   }

@@ -21,14 +21,14 @@ function drawLabelTexture(label, renderer = null) {
   canvas.height = CANVAS_H;
   const ctx = canvas.getContext('2d');
 
-  const pad = 26;
-  const rx = 18;
+  const pad = 36;
+  const rx = 28;
   ctx.fillStyle = '#1b2d47';
   roundRect(ctx, pad / 2, pad / 2, CANVAS_W - pad, CANVAS_H - pad, rx);
   ctx.fill();
 
   ctx.strokeStyle = '#68b5eb';
-  ctx.lineWidth = 6;
+  ctx.lineWidth = 10;
   roundRect(ctx, pad / 2, pad / 2, CANVAS_W - pad, CANVAS_H - pad, rx);
   ctx.stroke();
 
@@ -39,28 +39,28 @@ function drawLabelTexture(label, renderer = null) {
   const primary = lines[0] ?? label;
   const secondary = lines.slice(1).join(' ');
 
-  const maxW = CANVAS_W - pad * 4;
-  let titleSize = primary.length > 22 ? 66 : primary.length > 16 ? 72 : 80;
-  let subSize = secondary ? 52 : 0;
+  const maxW = CANVAS_W - pad * 3.5;
+  let titleSize = primary.length > 22 ? 128 : primary.length > 16 ? 142 : 158;
+  let subSize = secondary ? 92 : 0;
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#ffffff';
   ctx.font = `700 ${titleSize}px "DM Sans", system-ui, sans-serif`;
-  while (titleSize > 42 && ctx.measureText(primary).width > maxW) {
+  while (titleSize > 88 && ctx.measureText(primary).width > maxW) {
     titleSize -= 2;
     ctx.font = `700 ${titleSize}px "DM Sans", system-ui, sans-serif`;
   }
 
   if (secondary) {
     ctx.font = `600 ${subSize}px "DM Sans", system-ui, sans-serif`;
-    while (subSize > 34 && ctx.measureText(secondary).width > maxW) {
+    while (subSize > 64 && ctx.measureText(secondary).width > maxW) {
       subSize -= 2;
       ctx.font = `600 ${subSize}px "DM Sans", system-ui, sans-serif`;
     }
   }
 
-  const lineGap = 14;
+  const lineGap = 28;
   const blockH = titleSize + (secondary ? subSize + lineGap : 0);
   const cy = CANVAS_H / 2;
   const titleY = secondary ? cy - blockH / 2 + titleSize / 2 : cy;
@@ -71,7 +71,7 @@ function drawLabelTexture(label, renderer = null) {
 
   if (secondary) {
     ctx.font = `600 ${subSize}px "DM Sans", system-ui, sans-serif`;
-    ctx.fillStyle = '#d4e8ff';
+    ctx.fillStyle = '#e2f0ff';
     ctx.fillText(secondary, CANVAS_W / 2, titleY + titleSize / 2 + lineGap + subSize / 2);
   }
 

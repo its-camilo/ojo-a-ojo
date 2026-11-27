@@ -14,8 +14,20 @@ async function completeSequentialModule(page, moduleId, maxSteps = 48) {
   const isRecorded = () =>
     page.evaluate((id) => {
       const raw = localStorage.getItem('ojo-a-ojo-results-v1');
-      const mods = raw ? JSON.parse(raw).modules ?? {} : {};
-      return Boolean(mods[id]);
+      const m = raw ? JSON.parse(raw).modules?.[id] : null;
+      if (!m) return false;
+      switch (id) {
+        case 'balance':
+          return m.imbalanceRatio != null || m.valid != null;
+        case 'hollow-mask':
+          return Boolean(m.stereoPercept);
+        case 'ames':
+          return Boolean(m.stereoJudgment);
+        case 'rds':
+          return Boolean(m.stereoDepth);
+        default:
+          return false;
+      }
     }, moduleId);
 
   if (await isRecorded()) return;

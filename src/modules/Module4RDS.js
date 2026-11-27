@@ -7,6 +7,7 @@ import { LAYER_LEFT, LAYER_RIGHT } from '../rendering/StereoRenderer.js';
 import { createButtonRow } from './uiLayout.js';
 import { clearGroup } from './clearGroup.js';
 import { installStudioEnvironment, addStudioLights } from '../rendering/pbrEnvironment.js';
+import { recordModuleResult } from '../domain/sessionState.js';
 import { disposeObject3D } from '../rendering/sceneDispose.js';
 
 export class Module4RDS {
@@ -140,30 +141,47 @@ export class Module4RDS {
     this.group.add(dotLight);
   }
 
+  _roundTag() {
+    return this.phase === 'mono' ? '1/2 Un ojo' : '2/2 Dos ojos';
+  }
+
   _buildUI() {
     if (!this.ui) this.ui = new THREE.Group();
     clearGroup(this.ui);
-    const phase = this.phase === 'mono' ? 'Un ojo' : 'Dos ojos';
+    const round = this._roundTag();
     createButtonRow([
       {
-        label: `Sobresale\n(${phase} · sale hacia mí)`,
+        label: `Sobresale\n(${round} · hacia mí)`,
         onSelect: () => this._answer('near'),
       },
       {
-        label: `Se hunde\n(${phase} · va hacia atrás)`,
+        label: `Se hunde\n(${round} · atrás)`,
         onSelect: () => this._answer('far'),
       },
       {
-        label: `Plano / No veo\n(${phase} · sin relieve 3D)`,
+        label: `No veo relieve\n(${round} · plano)`,
         onSelect: () => this._answer('none'),
       },
     ], { preset: 'rds' }).forEach((b) => this.ui.add(b));
     if (!this.ui.parent) this.group.add(this.ui);
   }
 
+  _saveMonoPartial() {
+    recordModuleResult('rds', {
+      moduleId: 'rds',
+      title: 'RDS 3D grueso (Julesz)',
+      disparityPx: this.disparityPx,
+      monoDepth: this.monoAnswer,
+      stereoDepth: null,
+      partial: true,
+      completedRounds: ['mono'],
+    });
+  }
+
   _answer(depth) {
     if (this.phase === 'mono') {
       this.monoAnswer = depth;
+      this._saveMonoPartial();
       this.phase = 'stereo';
       this.stereo.setMono(false);
       clearGroup(this.ui);
@@ -178,6 +196,8 @@ export class Module4RDS {
       disparityArcsec: arc,
       monoDepth: this.monoAnswer ?? depth,
       stereoDepth: depth,
+      partial: false,
+      completedRounds: ['mono', 'stereo'],
       interpretation:
         `Tamizaje de estereopsis global gruesa (Julesz, 1960; Bonfanti et al., 2015). No mide estereoagudeza clínica fina. Si no percibe figura solo en estéreo, puede haber limitación binocular.`,
     });
