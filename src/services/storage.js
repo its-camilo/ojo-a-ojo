@@ -70,17 +70,32 @@ export function saveCalibration(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+export function normalizeSessionShape(session) {
+  const base = session ?? { modules: {}, startedAt: null, finishedAt: null };
+  if (!base.modules || typeof base.modules !== 'object' || Array.isArray(base.modules)) {
+    base.modules = {};
+  }
+  return base;
+}
+
 export function loadSessionResults() {
   try {
     const raw = localStorage.getItem(RESULTS_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    return normalizeSessionShape(JSON.parse(raw));
   } catch {
     return null;
   }
 }
 
 export function saveSessionResults(results) {
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  const normalized = normalizeSessionShape(results);
+  try {
+    localStorage.setItem(RESULTS_KEY, JSON.stringify(normalized));
+  } catch (err) {
+    console.warn('[ojo-a-ojo] No se pudo persistir la sesión en localStorage', err);
+  }
+  return normalized;
 }
 
 export function clearSessionResults() {

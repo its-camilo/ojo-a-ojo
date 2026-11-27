@@ -63,9 +63,12 @@ export class ViewerSession {
     const monoOnly = false;
 
     const complete = (payload) => {
-      recordModuleResult(payload.moduleId, payload);
-      this.stopModule();
-      onModuleDone(payload);
+      try {
+        recordModuleResult(payload.moduleId, payload);
+      } finally {
+        this.stopModule();
+        onModuleDone(payload);
+      }
     };
 
     this.activeModule = createSceneModule(moduleId, {

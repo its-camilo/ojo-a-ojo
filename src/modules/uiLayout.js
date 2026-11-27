@@ -9,12 +9,12 @@ const SIN30 = Math.sin(Math.PI / 6);
 
 const PRESETS = {
   /** Dos botones a 180°: (-R, 0) y (+R, 0). */
-  hollow: { R: 0.92, ringZ: UI_RING_Z, width: 0.94, height: 0.3 },
+  hollow: { R: 0.92, ringZ: UI_RING_Z, width: 1.06, height: 0.34 },
   /** Triplete circular 120° (estímulo central). */
-  balance: { R: 0.74, ringZ: UI_RING_Z, width: 0.94, height: 0.3 },
-  rds: { R: 0.72, ringZ: UI_RING_Z, width: 0.94, height: 0.3 },
+  balance: { R: 0.74, ringZ: UI_RING_Z, width: 1.06, height: 0.34 },
+  rds: { R: 0.72, ringZ: UI_RING_Z, width: 1.06, height: 0.34 },
   /** Radio algo menor + botones compactos para no tapar figuras. */
-  ames: { R: 0.66, ringZ: -2.05, width: 0.82, height: 0.27 },
+  ames: { R: 0.66, ringZ: -2.05, width: 0.93, height: 0.31 },
 };
 
 /**
@@ -42,8 +42,8 @@ export function createButtonRow(specs, layout = {}) {
   const preset = layout.preset ? PRESETS[layout.preset] ?? {} : {};
   const R = layout.R ?? preset.R ?? 0.74;
   const ringZ = layout.ringZ ?? preset.ringZ ?? UI_RING_Z;
-  const width = layout.width ?? preset.width ?? 0.94;
-  const height = layout.height ?? preset.height ?? 0.3;
+  const width = layout.width ?? preset.width ?? 1.06;
+  const height = layout.height ?? preset.height ?? 0.34;
 
   const n = specs.length;
   let positions;

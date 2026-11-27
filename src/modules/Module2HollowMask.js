@@ -5,6 +5,7 @@ import { buildHollowFaceGeometry } from './hollowFaceGeometry.js';
 import { makePlasterTexture } from '../rendering/proceduralTextures.js';
 import { enableSharedStereoLayers } from '../rendering/stereoLayers.js';
 import { disposeObject3D } from '../rendering/sceneDispose.js';
+import { recordModuleResult } from '../domain/sessionState.js';
 
 export class Module2HollowMask {
   constructor(stereo, monoRound, onComplete) {
@@ -94,24 +95,40 @@ export class Module2HollowMask {
     this.stereo.setMono(this.phase === 'mono');
   }
 
+  _roundTag() {
+    return this.phase === 'mono' ? '1/2 Un ojo' : '2/2 Dos ojos';
+  }
+
   _promptButtons() {
     clearGroup(this.ui);
-    const phase = this.phase === 'mono' ? 'Un ojo' : 'Dos ojos';
+    const round = this._roundTag();
     createButtonRow([
       {
-        label: `Convexa\n(${phase} · sale hacia afuera)`,
+        label: `Convexa\n(${round} · afuera)`,
         onSelect: () => this._answer('convex'),
       },
       {
-        label: `Cóncava\n(${phase} · hueca hacia adentro)`,
+        label: `Cóncava\n(${round} · adentro)`,
         onSelect: () => this._answer('concave'),
       },
     ], { preset: 'hollow' }).forEach((b) => this.ui.add(b));
   }
 
+  _saveMonoPartial() {
+    recordModuleResult('hollow-mask', {
+      moduleId: 'hollow-mask',
+      title: 'Máscara hueca 3D',
+      monoPercept: this.answers.mono,
+      stereoPercept: null,
+      partial: true,
+      completedRounds: ['mono'],
+    });
+  }
+
   _answer(percept) {
     this.answers[this.phase] = percept;
     if (this.phase === 'mono') {
+      this._saveMonoPartial();
       this.phase = 'stereo';
       this.stereo.setMono(false);
       this._promptButtons();
@@ -122,7 +139,7 @@ export class Module2HollowMask {
 
   _finish() {
     const mono = this.answers.mono || 'sin respuesta';
-    const stereo = this.answers.stereo || this.answers.mono || 'sin respuesta';
+    const stereo = this.answers.stereo || 'sin respuesta';
     let interpretation =
       'La máscara hueca suele percibirse convexa sin disparidad (Gregory, 1970; Hill y Bruce, 1993). Si en estéreo reporta concavidad o cambia el juicio, puede haber uso de disparidad binocular.';
     if (mono === 'convex' && stereo === 'concave') {
@@ -135,6 +152,8 @@ export class Module2HollowMask {
       title: 'Máscara hueca 3D',
       monoPercept: mono,
       stereoPercept: stereo,
+      partial: false,
+      completedRounds: ['mono', 'stereo'],
       interpretation,
     });
   }
